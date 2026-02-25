@@ -1,0 +1,17 @@
+﻿src/components/admin/AdminAttendanceMode.tsx(30,5): error TS6133: 'recentScans' is declared but its value is never read.
+src/components/admin/AdminAttendanceMode.tsx(31,5): error TS6133: 'handleScan' is declared but its value is never read.
+src/components/admin/AdminMainDashboard.tsx(4,52): error TS6133: 'ArrowLeft' is declared but its value is never read.
+src/components/admin/AdminMainDashboard.tsx(4,63): error TS6133: 'ArrowRight' is declared but its value is never read.
+src/components/admin/AdminMainDashboard.tsx(148,5): error TS6133: 'isScannerOpen' is declared but its value is never read.
+src/components/admin/AdminMainDashboard.tsx(152,5): error TS6133: 'handleScan' is declared but its value is never read.
+src/components/ErrorBoundary.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/ErrorBoundary.tsx(1,28): error TS1484: 'ErrorInfo' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/ErrorBoundary.tsx(1,39): error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/QRScannerDialog.tsx(12,10): error TS6133: 'Camera' is declared but its value is never read.
+src/components/QRScannerDialog.tsx(79,26): error TS6133: 'errorMessage' is declared but its value is never read.
+src/components/ui/calendar.tsx(45,20): error TS6133: '_props' is declared but its value is never read.
+src/components/ui/calendar.tsx(46,21): error TS6133: '_props' is declared but its value is never read.
+src/components/ui/form.tsx(4,22): error TS1484: 'ControllerProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/ui/form.tsx(4,39): error TS1484: 'FieldPath' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/ui/form.tsx(4,50): error TS1484: 'FieldValues' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/ui/sidebar.tsx(3,10): error TS1484: 'VariantProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
