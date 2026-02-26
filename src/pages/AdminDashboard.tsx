@@ -96,6 +96,7 @@ const AdminDashboard = () => {
                 console.log("Updating status to Verified for participant:", participant);
                 if (participant) {
                     const toastId = toast.loading("Sending verification emails...");
+                    await new Promise(resolve => setTimeout(resolve, 100)); // Allow UI to render the toast
                     console.log("Member details for email:", participant.members);
                     const membersToNotify = participant.members || [{
                         name: participant.name, email: participant.email, events: participant.events
@@ -156,7 +157,8 @@ const AdminDashboard = () => {
         worksheet.getRow(1).font = { bold: true };
         worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
 
-        toast.loading("Generating All Participants report...");
+        const toastId = toast.loading("Generating All Participants report...");
+        await new Promise(resolve => setTimeout(resolve, 100)); // Allow UI to render the toast
 
         for (const reg of registrations) {
             const members = reg.members || [{
@@ -208,7 +210,7 @@ const AdminDashboard = () => {
         a.href = url;
         a.download = `techbeta_all_participants.xlsx`;
         a.click();
-        toast.dismiss();
+        toast.dismiss(toastId);
         toast.success("Excel report exported!");
     };
 
@@ -219,7 +221,8 @@ const AdminDashboard = () => {
             reg.members ? reg.members.flatMap(m => m.events) : reg.events
         ))).sort();
 
-        toast.loading(`Generating ${includeAttendance ? 'Attendance Sheets' : 'Master Sheets'}...`);
+        const toastId = toast.loading(`Generating ${includeAttendance ? 'Attendance Sheets' : 'Master Sheets'}...`);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Allow UI to render the toast
 
         for (const eventName of allEvents) {
             const worksheet = workbook.addWorksheet(eventName.substring(0, 31).replace(/[\\/?*[\]]/g, ""));
@@ -303,7 +306,7 @@ const AdminDashboard = () => {
         a.href = url;
         a.download = includeAttendance ? `techbeta_attendance_sheets.xlsx` : `techbeta_master_sheets.xlsx`;
         a.click();
-        toast.dismiss();
+        toast.dismiss(toastId);
         toast.success(includeAttendance ? "Attendance sheets exported!" : "Master sheets exported!");
     };
 
