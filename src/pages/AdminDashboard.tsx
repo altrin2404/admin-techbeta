@@ -183,10 +183,17 @@ const AdminDashboard = () => {
                     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}&margin=0`;
 
                     const response = await fetch(qrUrl);
-                    const arrayBuffer = await response.arrayBuffer();
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const blob = await response.blob();
+                    const base64 = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
 
                     const imageId = workbook.addImage({
-                        buffer: arrayBuffer,
+                        base64: base64,
                         extension: 'png',
                     });
 
@@ -195,7 +202,8 @@ const AdminDashboard = () => {
                         ext: { width: 100, height: 100 }
                     });
                 } catch (error) {
-                    console.error("QR embedding failed:", error);
+                    console.error(`QR embedding failed for ${m.name}:`, error);
+                    row.getCell('qr').value = 'QR Failed';
                 }
             }
         }
@@ -274,10 +282,17 @@ const AdminDashboard = () => {
                             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}&margin=0`;
 
                             const response = await fetch(qrUrl);
-                            const arrayBuffer = await response.arrayBuffer();
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            const blob = await response.blob();
+                            const base64 = await new Promise<string>((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(blob);
+                            });
 
                             const imageId = workbook.addImage({
-                                buffer: arrayBuffer,
+                                base64: base64,
                                 extension: 'png',
                             });
 
@@ -286,7 +301,8 @@ const AdminDashboard = () => {
                                 ext: { width: 100, height: 100 }
                             });
                         } catch (error) {
-                            console.error("QR embedding failed:", error);
+                            console.error(`QR embedding failed for ${m.name}:`, error);
+                            row.getCell('qr').value = 'QR Failed';
                         }
                     }
                     teamCounter++;
