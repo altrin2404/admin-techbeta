@@ -84,6 +84,25 @@ export const addRegistration = async (data: Omit<Registration, "id" | "status" |
             registrationDate: new Date().toISOString(),
             timestamp: serverTimestamp()
         });
+
+        // Add Webhook Backup
+        try {
+            const webhookUrl = import.meta.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+            if (webhookUrl) {
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        ...sanitizedData,
+                        firebaseId: docRef.id,
+                        registrationDate: new Date().toISOString()
+                    })
+                });
+            }
+        } catch (webhookError) {
+            console.error("Webhook backup failed:", webhookError);
+        }
+
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Error adding registration: ", error);
