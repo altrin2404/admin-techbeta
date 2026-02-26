@@ -126,7 +126,7 @@
     scroll-padding-top: 5rem;
   }
 
-  section {
+  section:not([data-sonner-toaster]) {
     content-visibility: auto;
     contain-intrinsic-size: 0 500px;
   }
@@ -252,6 +252,14 @@
 /* Rendering Containment */
 section {
   contain: layout style;
+}
+
+/* Sonner toast renders as a <section> — exempt it from containment/visibility rules */
+[data-sonner-toaster],
+[data-sonner-toaster] section {
+  content-visibility: visible !important;
+  contain: none !important;
+  contain-intrinsic-size: auto !important;
 }
 
 /* Reset will-change after use (best practice) */

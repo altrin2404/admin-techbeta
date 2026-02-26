@@ -1,6 +1,6 @@
 import { ScanLine, QrCode, Download, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { showToast } from "@/lib/showToast";
 import { type Registration } from "@/lib/registrationService";
 
 interface AdminAttendanceModeProps {
@@ -145,7 +145,7 @@ const AdminAttendanceMode = ({
                     <Button
                         onClick={() => {
                             if (!activeEvent) {
-                                toast.error("Please select an event first!");
+                                showToast.error("Please select an event first!");
                                 return;
                             }
                             setIsScannerOpen(true);

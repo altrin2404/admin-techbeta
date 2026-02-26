@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // import ExcelJS from "exceljs"; // moved to dynamic import
-import { toast } from "sonner";
+import { showToast } from "@/lib/showToast";
 import {
     subscribeToRegistrations,
     updateRegistrationStatus,
@@ -72,11 +72,11 @@ const AdminDashboard = () => {
             const email = `${username}@${ADMIN_EMAIL_DOMAIN}`;
             await signInWithEmailAndPassword(auth, email, password);
             setAdminMode(mode);
-            toast.success(`Login Successful: ${mode === 'dashboard' ? 'Dashboard' : 'Attendance'}`);
+            showToast.success(`Login Successful: ${mode === 'dashboard' ? 'Dashboard' : 'Attendance'}`);
         } catch (error: any) {
             console.error("Login error:", error);
             const code = error?.code || "unknown";
-            toast.error(`Login failed: ${code}`);
+            showToast.error(`Login failed: ${code}`);
         } finally {
             setIsLoginLoading(false);
         }
@@ -90,17 +90,16 @@ const AdminDashboard = () => {
     const updateStatus = async (id: string, newStatus: string) => {
         const result = await updateRegistrationStatus(id, newStatus);
         if (result.success) {
-            toast.success(`Status updated to ${newStatus}`);
+            showToast.success(`Status updated to ${newStatus}`);
             if (newStatus === "Verified") {
                 const participant = registrations.find(r => r.id === id);
                 console.log("Updating status to Verified for participant:", participant);
                 if (participant) {
-                    const toastId = toast.loading("Sending verification emails...");
-                    await new Promise(resolve => setTimeout(resolve, 100)); // Allow UI to render the toast
-                    console.log("Member details for email:", participant.members);
                     const membersToNotify = participant.members || [{
                         name: participant.name, email: participant.email, events: participant.events
                     }];
+                    const isMultiple = membersToNotify.length > 1;
+                    showToast.info(isMultiple ? "Sending verification emails" : "Sending verification email", isMultiple ? `Delivering to ${membersToNotify.length} members of ${participant.name}'s team...` : `Delivering to ${membersToNotify[0].name}...`);
                     console.log("Final notify list:", membersToNotify);
                     let successCount = 0;
                     for (let i = 0; i < membersToNotify.length; i++) {
@@ -111,13 +110,12 @@ const AdminDashboard = () => {
                         const emailResult = await sendVerificationEmail(m.name, m.email, participant.transactionId, qrCodeUrl);
                         console.log(`Email result for ${m.name}:`, emailResult);
                         if (emailResult.success) successCount++;
-                        await new Promise(r => setTimeout(r, 800)); // Slightly longer delay to avoid potential rate limits
+                        await new Promise(r => setTimeout(r, 800));
                     }
-                    toast.dismiss(toastId);
                     if (successCount === membersToNotify.length) {
-                        toast.success(`Sent all ${successCount} verification emails!`);
+                        showToast.success(isMultiple ? "All emails sent" : "Email sent", isMultiple ? `${successCount} verification emails delivered successfully.` : `Verification email delivered to ${membersToNotify[0].name}.`);
                     } else {
-                        toast.error(`Sent ${successCount}/${membersToNotify.length} emails. Some failed.`);
+                        showToast.error("Some emails failed", `${successCount} of ${membersToNotify.length} emails sent. Please retry the failed ones.`);
                     }
                     console.log(`Email sending process complete: ${successCount} successful.`);
                 } else {
@@ -125,15 +123,15 @@ const AdminDashboard = () => {
                 }
             }
         } else {
-            toast.error("Failed to update status");
+            showToast.error("Failed to update status");
         }
     };
 
     const handleDelete = async (id: string) => {
         if (!window.confirm("Are you sure you want to delete this registration?")) return;
         const result = await deleteRegistration(id);
-        if (result.success) toast.success("Deleted successfully");
-        else toast.error("Failed to delete");
+        if (result.success) showToast.success("Deleted successfully");
+        else showToast.error("Failed to delete");
     };
 
     const exportAllParticipantsExcel = async () => {
@@ -157,8 +155,7 @@ const AdminDashboard = () => {
         worksheet.getRow(1).font = { bold: true };
         worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
 
-        const toastId = toast.loading("Generating All Participants report...");
-        await new Promise(resolve => setTimeout(resolve, 100)); // Allow UI to render the toast
+        showToast.info("Generating All Participants report...");
 
         for (const reg of registrations) {
             const members = reg.members || [{
@@ -210,8 +207,7 @@ const AdminDashboard = () => {
         a.href = url;
         a.download = `techbeta_all_participants.xlsx`;
         a.click();
-        toast.dismiss(toastId);
-        toast.success("Excel report exported!");
+        showToast.success("Excel report exported!");
     };
 
     const exportMasterExcel = async (includeAttendance: boolean = false) => {
@@ -221,8 +217,7 @@ const AdminDashboard = () => {
             reg.members ? reg.members.flatMap(m => m.events) : reg.events
         ))).sort();
 
-        const toastId = toast.loading(`Generating ${includeAttendance ? 'Attendance Sheets' : 'Master Sheets'}...`);
-        await new Promise(resolve => setTimeout(resolve, 100)); // Allow UI to render the toast
+        showToast.info(`Generating ${includeAttendance ? 'Attendance Sheets' : 'Master Sheets'}...`);
 
         for (const eventName of allEvents) {
             const worksheet = workbook.addWorksheet(eventName.substring(0, 31).replace(/[\\/?*[\]]/g, ""));
@@ -306,8 +301,7 @@ const AdminDashboard = () => {
         a.href = url;
         a.download = includeAttendance ? `techbeta_attendance_sheets.xlsx` : `techbeta_master_sheets.xlsx`;
         a.click();
-        toast.dismiss(toastId);
-        toast.success(includeAttendance ? "Attendance sheets exported!" : "Master sheets exported!");
+        showToast.success(includeAttendance ? "Attendance sheets exported!" : "Master sheets exported!");
     };
 
     const handleMarkAttendance = async (participantId: string, memberIndex: number, eventName: string) => {
@@ -326,7 +320,7 @@ const AdminDashboard = () => {
                 };
                 const { updateRegistrationMembers } = await import("@/lib/registrationService");
                 await updateRegistrationMembers(participant.id, updatedMembers);
-                toast.success(`Attendance marked: ${updatedMembers[memberIndex].name}`);
+                showToast.success(`Attendance marked: ${updatedMembers[memberIndex].name}`);
                 setRecentScans(prev => [{
                     name: updatedMembers[memberIndex].name,
                     event: eventName,
@@ -339,7 +333,7 @@ const AdminDashboard = () => {
             }
         } catch (error) {
             console.error("Failed to mark attendance:", error);
-            toast.error("Failed to mark attendance");
+            showToast.error("Failed to mark attendance");
         }
     };
 
@@ -360,11 +354,11 @@ const AdminDashboard = () => {
 
                 const { updateRegistrationMembers } = await import("@/lib/registrationService");
                 await updateRegistrationMembers(participant.id, updatedMembers);
-                toast.success(`Attendance removed: ${updatedMembers[memberIndex].name}`);
+                showToast.success(`Attendance removed: ${updatedMembers[memberIndex].name}`);
             }
         } catch (error) {
             console.error("Failed to remove attendance:", error);
-            toast.error("Failed to remove attendance");
+            showToast.error("Failed to remove attendance");
         }
     };
 
@@ -379,7 +373,7 @@ const AdminDashboard = () => {
             if (data.index !== undefined) setScannedMemberIndex(data.index);
 
             if (participant.status !== "Verified") {
-                toast.error("Payment not verified!");
+                showToast.error("Payment not verified!");
                 return;
             }
 
@@ -390,7 +384,7 @@ const AdminDashboard = () => {
                     if (member) {
                         const memberEvents = Array.isArray(member.events) ? member.events : [member.events];
                         if (!memberEvents.includes(activeEvent)) {
-                            toast.error(`${member.name} is not registered for ${activeEvent}`);
+                            showToast.error(`${member.name} is not registered for ${activeEvent}`);
                             setRecentScans(prev => [{
                                 name: member.name,
                                 event: activeEvent,
@@ -399,13 +393,13 @@ const AdminDashboard = () => {
                                 message: 'Not Registered'
                             }, ...prev].slice(0, 5));
                         } else if (member.attendance?.[activeEvent]?.attended) {
-                            toast.info("Already marked present");
+                            showToast.info("Already marked present");
                         }
                     }
                 }
             }
         } catch (e: any) {
-            toast.error(e.message || "Scan failed");
+            showToast.error(e.message || "Scan failed");
         }
     };
 
