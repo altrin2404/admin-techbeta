@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // import ExcelJS from "exceljs"; // moved to dynamic import
+import QRCode from "qrcode";
 import { showToast } from "@/lib/showToast";
 import {
     subscribeToRegistrations,
@@ -180,17 +181,8 @@ const AdminDashboard = () => {
 
                 try {
                     const qrData = JSON.stringify({ id: reg.id, index: i, name: m.name, events: m.events });
-                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}&margin=0`;
-
-                    const response = await fetch(qrUrl);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const blob = await response.blob();
-                    const base64 = await new Promise<string>((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                    });
+                    const dataUrl = await QRCode.toDataURL(qrData, { width: 150, margin: 0 });
+                    const base64 = dataUrl.split(',')[1];
 
                     const imageId = workbook.addImage({
                         base64: base64,
@@ -279,17 +271,8 @@ const AdminDashboard = () => {
 
                         try {
                             const qrData = JSON.stringify({ id: reg.id, index: originalIndex, name: m.name, events: m.events });
-                            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}&margin=0`;
-
-                            const response = await fetch(qrUrl);
-                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                            const blob = await response.blob();
-                            const base64 = await new Promise<string>((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-                                reader.onerror = reject;
-                                reader.readAsDataURL(blob);
-                            });
+                            const dataUrl = await QRCode.toDataURL(qrData, { width: 150, margin: 0 });
+                            const base64 = dataUrl.split(',')[1];
 
                             const imageId = workbook.addImage({
                                 base64: base64,
