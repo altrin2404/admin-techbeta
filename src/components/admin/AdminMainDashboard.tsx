@@ -17,6 +17,8 @@ import {
 import { type Registration } from "@/lib/registrationService";
 import { Loader2 } from "lucide-react";
 
+const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft"];
+
 // Sub-component for QR Code to avoid re-renders
 const QRCodeImage = memo(({ data }: { data: string }) => {
     const [loading, setLoading] = useState(true);
@@ -289,7 +291,7 @@ const AdminMainDashboard = ({
                                                     <span>{m.college}</span>
                                                 </div>
                                                 <div className="mt-1 flex flex-wrap gap-1">
-                                                    {(typeof m.events === 'string' ? [m.events] : (m.events || [])).map((e: string, idx: number) => {
+                                                    {(typeof m.events === 'string' ? [m.events] : (m.events || [])).filter(e => ALLOWED_EVENTS.includes(e)).map((e: string, idx: number) => {
                                                         const colors = [
                                                             "bg-blue-100 text-blue-700 border-blue-200",
                                                             "bg-purple-100 text-purple-700 border-purple-200",
@@ -329,7 +331,7 @@ const AdminMainDashboard = ({
                             <div className="flex flex-col gap-1 text-sm pt-2 border-t border-slate-100 mt-2">
                                 <span className="text-slate-400 font-bold uppercase text-[10px]">Events</span>
                                 <div className="flex flex-wrap gap-1">
-                                    {(scannedParticipant?.events || []).map((e, i) => (
+                                    {(scannedParticipant?.events || []).filter(e => ALLOWED_EVENTS.includes(e)).map((e, i) => (
                                         <span key={i} className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">{e}</span>
                                     ))}
                                 </div>
@@ -440,11 +442,11 @@ const AdminMainDashboard = ({
                                         </td>
                                         <td className="px-6 py-4 hidden lg:table-cell">
                                             <div className="flex flex-wrap gap-1">
-                                                {(Array.isArray(reg.events) ? reg.events : [reg.events]).slice(0, 2).map((e: string, i: number) => (
+                                                {(Array.isArray(reg.events) ? reg.events : [reg.events]).filter(e => ALLOWED_EVENTS.includes(e)).slice(0, 2).map((e: string, i: number) => (
                                                     <span key={i} className="text-[9px] font-black uppercase bg-slate-50 text-slate-500 px-2 py-0.5 rounded border border-slate-100 whitespace-nowrap">{e}</span>
                                                 ))}
-                                                {(Array.isArray(reg.events) ? reg.events : [reg.events]).length > 2 && (
-                                                    <span className="text-[10px] text-slate-300 font-bold">+{(Array.isArray(reg.events) ? reg.events : [reg.events]).length - 2}</span>
+                                                {(Array.isArray(reg.events) ? reg.events : [reg.events]).filter(e => ALLOWED_EVENTS.includes(e)).length > 2 && (
+                                                    <span className="text-[10px] text-slate-300 font-bold">+{(Array.isArray(reg.events) ? reg.events : [reg.events]).filter(e => ALLOWED_EVENTS.includes(e)).length - 2}</span>
                                                 )}
                                             </div>
                                         </td>

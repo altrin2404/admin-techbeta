@@ -2,6 +2,9 @@ import { ScanLine, QrCode, Download, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/lib/showToast";
 import { type Registration } from "@/lib/registrationService";
+import { useMemo } from "react";
+
+const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft"];
 
 interface AdminAttendanceModeProps {
     activeEvent: string;
@@ -38,26 +41,33 @@ const AdminAttendanceMode = ({
 }: AdminAttendanceModeProps) => {
 
     // Extract unique events for the dropdown
-    const availableEvents = Array.from(new Set(registrations.flatMap(reg =>
-        reg.members
-            ? reg.members.flatMap(m => m.events)
-            : reg.events
-    ))).sort();
+    const availableEvents = useMemo(() => {
+        return Array.from(new Set(registrations.flatMap(reg =>
+            reg.members
+                ? reg.members.flatMap(m => m.events)
+                : reg.events
+        ))).filter((e: string) => ALLOWED_EVENTS.includes(e))
+            .sort((a, b) => ALLOWED_EVENTS.indexOf(a) - ALLOWED_EVENTS.indexOf(b));
+    }, [registrations]);
 
-    const presentCount = registrations.reduce((acc, reg) =>
-        acc + (reg.members?.filter(m => m.attendance?.[activeEvent]?.attended).length || 0), 0
-    );
+    const presentCount = useMemo(() => {
+        return registrations.reduce((acc, reg) =>
+            acc + (reg.members?.filter(m => m.attendance?.[activeEvent]?.attended).length || 0), 0
+        );
+    }, [registrations, activeEvent]);
 
-    const presentMembers = registrations.flatMap(reg => {
-        if (!reg.members) return [];
-        return reg.members
-            .map((m, idx) => ({ ...m, regId: reg.id, memberIndex: idx }))
-            .filter(m => m.attendance?.[activeEvent]?.attended);
-    }).sort((a, b) => {
-        const timeA = new Date(a.attendance?.[activeEvent]?.timestamp || 0).getTime();
-        const timeB = new Date(b.attendance?.[activeEvent]?.timestamp || 0).getTime();
-        return timeB - timeA;
-    });
+    const presentMembers = useMemo(() => {
+        return registrations.flatMap(reg => {
+            if (!reg.members) return [];
+            return reg.members
+                .map((m, idx) => ({ ...m, regId: reg.id, memberIndex: idx }))
+                .filter(m => m.attendance?.[activeEvent]?.attended);
+        }).sort((a, b) => {
+            const timeA = new Date(a.attendance?.[activeEvent]?.timestamp || 0).getTime();
+            const timeB = new Date(b.attendance?.[activeEvent]?.timestamp || 0).getTime();
+            return timeB - timeA;
+        });
+    }, [registrations, activeEvent]);
 
     const currentScannedMember = (scannedParticipant && scannedMemberIndex !== -1)
         ? scannedParticipant.members?.[scannedMemberIndex]

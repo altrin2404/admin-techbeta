@@ -26,6 +26,8 @@ const AdminAttendanceMode = lazy(() => import("@/components/admin/AdminAttendanc
 
 const ADMIN_EMAIL_DOMAIN = "techbeta2k26.firebaseapp.com";
 
+const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft"];
+
 const AdminDashboard = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -172,7 +174,7 @@ const AdminDashboard = () => {
                     college: m.college,
                     phone: m.phone,
                     email: m.email,
-                    events: Array.isArray(m.events) ? m.events.join("; ") : (m.events || ""),
+                    events: Array.isArray(m.events) ? m.events.filter((e: string) => ALLOWED_EVENTS.includes(e)).join("; ") : (ALLOWED_EVENTS.includes(m.events) ? m.events : ""),
                     status: reg.status
                 });
 
@@ -215,7 +217,7 @@ const AdminDashboard = () => {
         const workbook = new ExcelJS.Workbook();
         const allEvents = Array.from(new Set(registrations.flatMap(reg =>
             reg.members ? reg.members.flatMap(m => m.events) : reg.events
-        ))).sort();
+        ))).filter((e: string) => ALLOWED_EVENTS.includes(e)).sort();
 
         showToast.info(`Generating ${includeAttendance ? 'Attendance Sheets' : 'Master Sheets'}...`);
 

@@ -126,20 +126,14 @@ export const deleteRegistration = async (id: string) => {
     }
 };
 
+/**
+ * @deprecated Use `updateRegistrationMembers` instead. 
+ * Firestore doesn't easily support updating a specific index in an array without rewriting it.
+ * Since team sizes are small, rewriting the array is the preferred approach.
+ */
 export const markMemberAttendance = async (_registrationId: string, _memberIndex: number, _eventName: string, _attended: boolean = true) => {
-    try {
-        // We need to get the current data to update the specific member in the array
-        // However, for efficiency in a live scan, we might want to use a more targeted update if possible
-        // But Firestore doesn't easily support updating a specific index in an array without rewriting the array
-        // or using some tricks. Since team sizes are small (2-5), rewriting the array is acceptable.
-
-        // This is a helper that would be called after fetching the latest registration data in the component
-        // or we fetch it here.
-        return { success: false, error: "Use updateRegistrationMembers helper" };
-    } catch (error) {
-        console.error("Error marking attendance: ", error);
-        return { success: false, error };
-    }
+    console.warn("markMemberAttendance is deprecated. Use updateRegistrationMembers helper instead.");
+    return { success: false, error: "Use updateRegistrationMembers helper" };
 };
 
 export const updateRegistrationMembers = async (registrationId: string, members: TeamMember[]) => {
