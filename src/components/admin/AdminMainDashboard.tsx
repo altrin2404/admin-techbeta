@@ -67,7 +67,6 @@ interface AdminMainDashboardProps {
     scannedMemberIndex: number;
     setScannedMemberIndex: (index: number) => void;
     onRemoveAttendance: (participantId: string, memberIndex: number, eventName: string) => Promise<void>;
-    setAdminMode: (mode: 'none' | 'dashboard' | 'attendance') => void;
 }
 
 const QRDisplayDialog = ({
@@ -168,7 +167,6 @@ const AdminMainDashboard = ({
     scannedMemberIndex,
     setScannedMemberIndex,
     onRemoveAttendance,
-    setAdminMode
 }: AdminMainDashboardProps) => {
 
     const [qrDialogRegistration, setQrDialogRegistration] = useState<Registration | null>(null);
@@ -221,13 +219,7 @@ const AdminMainDashboard = ({
                     />
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
-                    <Button
-                        variant="ghost"
-                        onClick={() => setAdminMode('attendance')}
-                        className="text-purple-600 font-bold border-2 border-purple-100 hover:bg-purple-50"
-                    >
-                        <QrCode className="h-4 w-4 mr-2" /> Switch to Attendance
-                    </Button>
+
                     <Button onClick={() => setIsScannerOpen(true)} className="bg-purple-600 hover:bg-purple-700 font-bold h-10 shadow-lg shadow-purple-100">
                         <ScanLine className="h-4 w-4 mr-2" /> Scan Ticket
                     </Button>

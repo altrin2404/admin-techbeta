@@ -555,7 +555,6 @@ const AdminDashboard = () => {
                             registrations={registrations}
                             setIsScannerOpen={setIsScannerOpen}
                             exportMasterExcel={() => exportMasterExcel(true)}
-                            setAdminMode={setAdminMode}
                             recentScans={recentScans}
                             handleScan={handleScan}
                             scannedParticipant={scannedParticipant}
@@ -586,7 +585,6 @@ const AdminDashboard = () => {
                             scannedMemberIndex={scannedMemberIndex}
                             setScannedMemberIndex={setScannedMemberIndex}
                             onRemoveAttendance={handleRemoveAttendance}
-                            setAdminMode={setAdminMode}
                         />
                     )}
                 </Suspense>

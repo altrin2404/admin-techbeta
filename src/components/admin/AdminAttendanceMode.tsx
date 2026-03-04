@@ -12,7 +12,6 @@ interface AdminAttendanceModeProps {
     registrations: Registration[];
     setIsScannerOpen: (isOpen: boolean) => void;
     exportMasterExcel: () => void;
-    setAdminMode: (mode: 'none' | 'dashboard' | 'attendance') => void;
     recentScans: { name: string, event: string, status: 'success' | 'error', time: string, message: string }[];
     handleScan: (decodedText: string) => Promise<void>;
     scannedParticipant: Registration | null;
@@ -29,7 +28,6 @@ const AdminAttendanceMode = ({
     registrations,
     setIsScannerOpen,
     exportMasterExcel,
-    setAdminMode,
     recentScans: _recentScans,
     handleScan: _handleScan,
     scannedParticipant,
@@ -176,11 +174,7 @@ const AdminAttendanceMode = ({
                         Export Attendance Report
                     </Button>
 
-                    <div className="pt-4 flex flex-col gap-2">
-                        <Button variant="ghost" onClick={() => setAdminMode('dashboard')} className="text-slate-400 font-bold">
-                            <ArrowLeft className="h-4 w-4 mr-2" /> Switch to Dashboard
-                        </Button>
-                    </div>
+
                 </div>
             </div>
 
