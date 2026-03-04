@@ -43,7 +43,7 @@ const QRScannerDialog = ({ isOpen, onClose, onScan }: QRScannerDialogProps) => {
             const startScanning = async (mode: "user" | "environment") => {
                 try {
                     console.log(`Requesting camera access (${mode})...`);
-                    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                    const config = { fps: 10, qrbox: { width: 450, height: 450 } };
 
                     // Should ensure elemet exists
                     if (!document.getElementById("reader")) {
@@ -133,7 +133,7 @@ const QRScannerDialog = ({ isOpen, onClose, onScan }: QRScannerDialogProps) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-md bg-white text-black">
+            <DialogContent className="sm:max-w-2xl bg-white text-black">
                 <DialogHeader>
                     <DialogTitle>Scan Participant Ticket</DialogTitle>
                     <DialogDescription>
@@ -149,7 +149,7 @@ const QRScannerDialog = ({ isOpen, onClose, onScan }: QRScannerDialogProps) => {
                         </div>
                     ) : (
                         <>
-                            <div className="w-full h-[300px] bg-black/10 rounded-lg overflow-hidden relative">
+                            <div className="w-full h-[500px] bg-black/10 rounded-lg overflow-hidden relative">
                                 <div id="reader" className="w-full h-full"></div>
                                 {!isScanning && !scanError && (
                                     <div className="absolute inset-0 flex items-center justify-center text-gray-500 z-0">
