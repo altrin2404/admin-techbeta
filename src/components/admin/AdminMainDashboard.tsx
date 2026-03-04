@@ -409,9 +409,6 @@ const AdminMainDashboard = ({
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200 shadow-xl">
                                 <SelectItem value="all" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">All</SelectItem>
-                                <SelectItem value="date" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Date</SelectItem>
-                                <SelectItem value="name" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Name</SelectItem>
-                                <SelectItem value="college" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">College</SelectItem>
                                 <SelectItem value="verified" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Verified</SelectItem>
                                 <SelectItem value="pending" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Pending</SelectItem>
                             </SelectContent>
