@@ -36,6 +36,7 @@ const AdminDashboard = () => {
     const [activeEvent, setActiveEvent] = useState<string>("");
     const [registrations, setRegistrations] = useState<Registration[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [searchFilter, setSearchFilter] = useState("all");
 
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [recentScans, setRecentScans] = useState<{ name: string, event: string, status: 'success' | 'error', time: string, message: string }[]>([]);
@@ -99,7 +100,7 @@ const AdminDashboard = () => {
                 console.log("Updating status to Verified for participant:", participant);
                 if (participant) {
                     const membersToNotify = participant.members || [{
-                        name: participant.name, email: participant.email, events: participant.events
+                        name: participant.name, email: participant.email, phone: participant.phone, college: participant.college, department: participant.department, year: (participant as any).year, events: participant.events
                     }];
                     const isMultiple = membersToNotify.length > 1;
                     showToast.info(isMultiple ? "Sending verification emails" : "Sending verification email", isMultiple ? `Delivering to ${membersToNotify.length} members of ${participant.name}'s team...` : `Delivering to ${membersToNotify[0].name}...`);
@@ -130,8 +131,69 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this registration?")) return;
+    const verifyMember = async (id: string, memberIndex: number) => {
+        const participant = registrations.find(r => r.id === id);
+        if (!participant) return;
+
+        const members = participant.members || [{
+            name: participant.name, email: participant.email, phone: participant.phone,
+            college: participant.college, department: participant.department, year: (participant as any).year,
+            events: participant.events, isVerified: participant.status === "Verified"
+        }];
+
+        const member = members[memberIndex];
+        if (member.isVerified) {
+            showToast.info("Participant is already verified");
+            return;
+        }
+
+        const updatedMembers = [...members];
+        updatedMembers[memberIndex] = { ...member, isVerified: true };
+
+        // Always use updateRegistrationMembers
+        const result = await import('@/lib/registrationService').then(m => m.updateRegistrationMembers(id, updatedMembers));
+
+        if (result.success) {
+            showToast.success(`Verified ${member.name}`);
+
+            if (participant.status !== "Verified") {
+                updateRegistrationStatus(id, "Verified");
+            }
+
+            const qrData = JSON.stringify({ id: participant.id, index: memberIndex, name: member.name, events: member.events });
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`;
+
+            showToast.info("Sending verification email", `Delivering to ${member.name}...`);
+            const emailResult = await sendVerificationEmail(member.name, member.email, participant.transactionId, qrCodeUrl);
+            if (emailResult.success) {
+                showToast.success("Email sent", `Verification email delivered to ${member.name}.`);
+            } else {
+                showToast.error("Email failed", `Failed to send email to ${member.name}.`);
+            }
+        } else {
+            showToast.error("Failed to verify participant");
+        }
+    };
+
+    const handleDelete = async (id: string, memberIndex?: number) => {
+        if (!window.confirm("Are you sure you want to delete this participant?")) return;
+
+        if (memberIndex !== undefined) {
+            const reg = registrations.find(r => r.id === id);
+            if (reg && reg.members && reg.members.length > 1) {
+                const updatedMembers = [...reg.members];
+                updatedMembers.splice(memberIndex, 1);
+                const result = await import('@/lib/registrationService').then(m => m.updateRegistrationMembers(id, updatedMembers));
+                if (result.success) {
+                    showToast.success("Participant removed successfully");
+                } else {
+                    showToast.error("Failed to remove participant");
+                }
+                return;
+            }
+        }
+
+        // If it was the last member or no memberIndex given, delete the whole doc
         const result = await deleteRegistration(id);
         if (result.success) showToast.success("Deleted successfully");
         else showToast.error("Failed to delete");
@@ -144,6 +206,7 @@ const AdminDashboard = () => {
 
         worksheet.columns = [
             { header: "QR Code", key: "qr", width: 15 },
+            { header: "S.No", key: "sno", width: 10 },
             { header: "Name", key: "name", width: 20 },
             { header: "Dept", key: "department", width: 15 },
             { header: "Year", key: "year", width: 10 },
@@ -160,6 +223,7 @@ const AdminDashboard = () => {
 
         showToast.info("Generating All Participants report...");
 
+        let snoCounter = 1;
         for (const reg of registrations) {
             const members = reg.members || [{
                 name: reg.name, department: reg.department, year: (reg as any).year, college: reg.college, phone: reg.phone, email: reg.email, events: reg.events
@@ -168,6 +232,7 @@ const AdminDashboard = () => {
             for (let i = 0; i < members.length; i++) {
                 const m = members[i];
                 const row = worksheet.addRow({
+                    sno: snoCounter++,
                     name: m.name,
                     department: m.department,
                     year: m.year || "N/A",
@@ -225,7 +290,7 @@ const AdminDashboard = () => {
             const worksheet = workbook.addWorksheet(eventName.substring(0, 31).replace(/[\\/?*[\]]/g, ""));
             const columns = [
                 { header: "QR Code", key: "qr", width: 15 },
-                { header: "Team", key: "team", width: 10 },
+                { header: "S.No", key: "sno", width: 10 },
                 { header: "Name", key: "name", width: 20 },
                 { header: "Dept", key: "department", width: 15 },
                 { header: "College", key: "college", width: 25 },
@@ -242,7 +307,7 @@ const AdminDashboard = () => {
             worksheet.getRow(1).font = { bold: true };
             worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
 
-            let teamCounter = 1;
+            let snoCounter = 1;
             for (const reg of registrations) {
                 const members = reg.members || [{
                     name: reg.name, email: reg.email, phone: reg.phone, college: reg.college, department: reg.department, events: reg.events, attendance: (reg as any).attendance
@@ -254,7 +319,7 @@ const AdminDashboard = () => {
                         const originalIndex = reg.members ? reg.members.findIndex(member => member.name === m.name) : 0;
                         const attendanceInfo = m.attendance?.[eventName];
                         const rowData: any = {
-                            team: teamCounter,
+                            sno: snoCounter++,
                             name: m.name,
                             department: m.department,
                             college: m.college,
@@ -290,7 +355,6 @@ const AdminDashboard = () => {
                             row.getCell('qr').value = 'QR Failed';
                         }
                     }
-                    teamCounter++;
                 }
             }
         }
@@ -407,14 +471,52 @@ const AdminDashboard = () => {
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
     const filteredRegistrations = useMemo(() => {
-        if (!debouncedSearchQuery) return registrations;
-        const query = debouncedSearchQuery.toLowerCase();
-        return registrations.filter(reg =>
-            reg.name.toLowerCase().includes(query) ||
-            reg.college.toLowerCase().includes(query) ||
-            reg.transactionId?.toLowerCase().includes(query)
-        );
-    }, [registrations, debouncedSearchQuery]);
+        if (!debouncedSearchQuery && searchFilter === "all") return registrations;
+
+        const query = (debouncedSearchQuery || "").toLowerCase();
+
+        return registrations.reduce((acc: Registration[], reg) => {
+            const members: import('@/lib/registrationService').TeamMember[] = reg.members || [{
+                name: reg.name, department: reg.department, college: reg.college, year: (reg as any).year,
+                phone: reg.phone, email: reg.email, events: reg.events, isVerified: reg.status === "Verified"
+            }];
+
+            // Check registration-level matches first
+            const matchesRegDate = reg.registrationDate && (
+                reg.registrationDate.toLowerCase().includes(query) ||
+                new Date(reg.registrationDate).toLocaleDateString().toLowerCase().includes(query)
+            );
+            const matchesTxId = reg.transactionId?.toLowerCase().includes(query);
+
+            const filteredMembers = members.filter(m => {
+                const isMemberVerified = m.isVerified || reg.status === "Verified";
+
+                // Filter by Status if applicable
+                if (searchFilter === "verified" && !isMemberVerified) return false;
+                if (searchFilter === "pending" && isMemberVerified) return false;
+
+                // If no search query, then we just care about the status filter or dropdown filter
+                if (!query) return true;
+
+                const matchesName = m.name.toLowerCase().includes(query);
+                const matchesCollege = m.college.toLowerCase().includes(query);
+
+                if (searchFilter === "name") return matchesName;
+                if (searchFilter === "college") return matchesCollege;
+                if (searchFilter === "date") return !!matchesRegDate;
+
+                // "all", "verified", "pending" fallback to matching anything
+                return matchesName || matchesCollege || !!matchesRegDate || !!matchesTxId;
+            });
+
+            if (filteredMembers.length > 0) {
+                // Return a clone of the registration with only the filtered members
+                acc.push({ ...reg, members: filteredMembers });
+            }
+
+            return acc;
+        }, []);
+    }, [registrations, debouncedSearchQuery, searchFilter]);
 
     if (isAuthLoading) {
         return (
@@ -469,12 +571,15 @@ const AdminDashboard = () => {
                             filteredRegistrations={filteredRegistrations}
                             searchQuery={searchQuery}
                             setSearchQuery={setSearchQuery}
+                            searchFilter={searchFilter}
+                            setSearchFilter={setSearchFilter}
                             isScannerOpen={isScannerOpen}
                             setIsScannerOpen={setIsScannerOpen}
                             exportAllParticipantsExcel={exportAllParticipantsExcel}
                             exportMasterExcel={() => exportMasterExcel(false)}
                             handleScan={handleScan}
                             updateStatus={updateStatus}
+                            verifyMember={verifyMember}
                             handleDelete={handleDelete}
                             scannedParticipant={scannedParticipant}
                             setScannedParticipant={setScannedParticipant}

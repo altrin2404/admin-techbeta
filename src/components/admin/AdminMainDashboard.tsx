@@ -12,6 +12,9 @@ import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
     Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious,
 } from "@/components/ui/carousel";
 import { type Registration } from "@/lib/registrationService";
@@ -49,13 +52,16 @@ interface AdminMainDashboardProps {
     filteredRegistrations: Registration[];
     searchQuery: string;
     setSearchQuery: (query: string) => void;
+    searchFilter: string;
+    setSearchFilter: (filter: string) => void;
     isScannerOpen: boolean;
     setIsScannerOpen: (isOpen: boolean) => void;
     exportAllParticipantsExcel: () => void;
     exportMasterExcel: () => void;
     handleScan: (decodedText: string) => Promise<void>;
     updateStatus: (id: string, newStatus: string) => Promise<void>;
-    handleDelete: (id: string) => Promise<void>;
+    verifyMember: (id: string, memberIndex: number) => Promise<void>;
+    handleDelete: (id: string, memberIndex?: number) => Promise<void>;
     scannedParticipant: Registration | null;
     setScannedParticipant: (participant: Registration | null) => void;
     scannedMemberIndex: number;
@@ -147,12 +153,15 @@ const AdminMainDashboard = ({
     filteredRegistrations,
     searchQuery,
     setSearchQuery,
+    searchFilter,
+    setSearchFilter,
     isScannerOpen: _isScannerOpen,
     setIsScannerOpen,
     exportAllParticipantsExcel,
     exportMasterExcel,
     handleScan: _handleScan,
     updateStatus,
+    verifyMember,
     handleDelete,
     scannedParticipant,
     setScannedParticipant,
@@ -253,119 +262,121 @@ const AdminMainDashboard = ({
                     <div className="bg-purple-600 p-6 flex flex-col items-center justify-center text-white">
                         <CheckCircle className="h-12 w-12 mb-2" />
                         <DialogTitle className="text-xl font-black uppercase tracking-tight text-center">
-                            {scannedParticipant?.status === "Verified" ? "Admit Team" : "Verify Team"}
+                            {scannedParticipant?.status === "Verified" ? "Admit Participant" : "Verify Participant"}
                         </DialogTitle>
                     </div>
                     <div className="p-6 space-y-4">
-                        <div className="text-center">
-                            <h3 className="text-xl font-bold text-slate-900">{scannedParticipant?.name}</h3>
-                            <p className="text-sm font-medium text-slate-500 uppercase tracking-widest">{scannedParticipant?.college}</p>
-                        </div>
+                        {(() => {
+                            const m = scannedMemberIndex >= 0 && scannedParticipant?.members
+                                ? scannedParticipant.members[scannedMemberIndex]
+                                : {
+                                    name: scannedParticipant?.name,
+                                    college: scannedParticipant?.college,
+                                    department: scannedParticipant?.department,
+                                    phone: scannedParticipant?.phone,
+                                    year: (scannedParticipant as any)?.year,
+                                    events: scannedParticipant?.events,
+                                    attendance: (scannedParticipant as any)?.attendance
+                                };
 
-                        <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-100">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-400 font-bold uppercase text-[10px]">Team Size</span>
-                                <span className="font-mono font-bold text-slate-800">{scannedParticipant?.members?.length || 1} Members</span>
-                            </div>
+                            if (!m) return null;
 
-                            {scannedParticipant?.members && (
-                                <div className="pt-2 border-t border-slate-200 mt-2">
-                                    <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">Team Members</p>
-                                    <ul className="space-y-3">
-                                        {scannedParticipant.members.map((m, i) => (
-                                            <li
-                                                key={i}
-                                                className={`text-xs p-2 rounded-lg transition-all ${scannedMemberIndex === i
-                                                    ? "bg-green-100 border-2 border-green-500 shadow-md transform scale-105"
-                                                    : "bg-slate-100 border border-transparent"
-                                                    }`}
-                                            >
-                                                <div className="flex justify-between mb-1">
-                                                    <span className={`font-bold ${scannedMemberIndex === i ? "text-green-800" : "text-slate-700"}`}>
-                                                        {m.name} {scannedMemberIndex === i && <span className="text-[9px] bg-green-200 text-green-800 px-1 rounded ml-2">MATCH</span>}
-                                                    </span>
-                                                    <span className="text-slate-400">{m.phone}</span>
-                                                </div>
-                                                <div className="flex justify-between text-[10px] text-slate-500">
-                                                    <span>{m.department} • {m.year || "Year N/A"}</span>
-                                                    <span>{m.college}</span>
-                                                </div>
-                                                <div className="mt-1 flex flex-wrap gap-1">
-                                                    {(typeof m.events === 'string' ? [m.events] : (m.events || [])).filter(e => ALLOWED_EVENTS.includes(e)).map((e: string, idx: number) => {
-                                                        const colors = [
-                                                            "bg-blue-100 text-blue-700 border-blue-200",
-                                                            "bg-purple-100 text-purple-700 border-purple-200",
-                                                            "bg-pink-100 text-pink-700 border-pink-200",
-                                                            "bg-orange-100 text-orange-700 border-orange-200",
-                                                            "bg-teal-100 text-teal-700 border-teal-200",
-                                                            "bg-indigo-100 text-indigo-700 border-indigo-200",
-                                                        ];
-                                                        const colorIndex = (e.length + e.charCodeAt(0)) % colors.length;
-                                                        const isAttended = m.attendance?.[e]?.attended;
+                            return (
+                                <>
+                                    <div className="text-center">
+                                        <h3 className="text-xl font-bold text-slate-900">{m.name}</h3>
+                                        <p className="text-sm font-medium text-slate-500 uppercase tracking-widest">{m.college}</p>
+                                    </div>
 
-                                                        return (
-                                                            <span
-                                                                key={idx}
-                                                                className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${colors[colorIndex]} flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity`}
-                                                                onClick={(evt) => {
-                                                                    if (isAttended) {
-                                                                        evt.stopPropagation();
-                                                                        if (confirm(`Remove attendance for ${m.name} in ${e}?`)) {
-                                                                            onRemoveAttendance(scannedParticipant.id, i, e);
-                                                                        }
+                                    <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-100">
+                                        <div className="flex justify-between mb-1">
+                                            <span className="font-bold text-slate-700">Contact</span>
+                                            <span className="text-slate-400">{m.phone}</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            <span className="text-[11px] font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 uppercase tracking-wider">{m.department}</span>
+                                            <span className="text-[11px] font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">{m.year || "Year N/A"}</span>
+                                        </div>
+
+                                        <div className="flex flex-col gap-1 text-sm pt-2 border-t border-slate-100 mt-2">
+                                            <span className="text-slate-400 font-bold uppercase text-[10px]">Events</span>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {(typeof m.events === 'string' ? [m.events] : (m.events || [])).filter((e: string) => ALLOWED_EVENTS.includes(e)).map((e: string, idx: number) => {
+                                                    const colors = [
+                                                        "bg-blue-100 text-blue-800 border-blue-200",
+                                                        "bg-purple-100 text-purple-800 border-purple-200",
+                                                        "bg-pink-100 text-pink-800 border-pink-200",
+                                                        "bg-orange-100 text-orange-800 border-orange-200",
+                                                        "bg-teal-100 text-teal-800 border-teal-200",
+                                                        "bg-indigo-100 text-indigo-800 border-indigo-200",
+                                                    ];
+                                                    const colorIndex = (e.length + e.charCodeAt(0)) % colors.length;
+                                                    const isAttended = (m.attendance as any)?.[e]?.attended;
+
+                                                    return (
+                                                        <span
+                                                            key={idx}
+                                                            className={`text-[10px] font-bold px-2 py-1 rounded border ${colors[colorIndex]} flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap`}
+                                                            onClick={(evt) => {
+                                                                if (isAttended && scannedParticipant) {
+                                                                    evt.stopPropagation();
+                                                                    if (confirm(`Remove attendance for ${m.name} in ${e}?`)) {
+                                                                        onRemoveAttendance(scannedParticipant.id, scannedMemberIndex, e);
                                                                     }
-                                                                }}
-                                                            >
-                                                                {e}
-                                                                {isAttended && <CheckCircle size={8} className="text-green-600" />}
-                                                            </span>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            <div className="flex flex-col gap-1 text-sm pt-2 border-t border-slate-100 mt-2">
-                                <span className="text-slate-400 font-bold uppercase text-[10px]">Events</span>
-                                <div className="flex flex-wrap gap-1">
-                                    {(scannedParticipant?.events || []).filter(e => ALLOWED_EVENTS.includes(e)).map((e, i) => (
-                                        <span key={i} className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">{e}</span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+                                                                }
+                                                            }}
+                                                        >
+                                                            {e}
+                                                            {isAttended && <CheckCircle size={10} className="text-green-600" />}
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            );
+                        })()}
 
                         <div className="flex flex-col gap-2">
-                            {scannedParticipant?.status === "Pending Verification" ? (
-                                <Button
-                                    onClick={() => {
-                                        if (scannedParticipant) {
-                                            updateStatus(scannedParticipant.id, "Verified");
-                                            setScannedParticipant(null);
-                                            setScannedMemberIndex(-1);
-                                        }
-                                    }}
-                                    className="w-full bg-green-500 hover:bg-green-600 text-white font-bold h-12 text-lg shadow-lg shadow-green-200"
-                                >
-                                    Verify & Admit Team
-                                </Button>
-                            ) : (
-                                <div className="flex items-center justify-center gap-2 bg-green-50 text-green-700 p-3 rounded-xl font-bold border border-green-200">
-                                    <CheckCircle size={18} /> Team Already Verified
-                                </div>
-                            )}
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    setScannedParticipant(null);
-                                    setScannedMemberIndex(-1);
-                                }}
-                                className="w-full font-bold"
-                            >
-                                Close
+                            {(() => {
+                                const m = scannedMemberIndex >= 0 && scannedParticipant?.members
+                                    ? scannedParticipant.members[scannedMemberIndex]
+                                    : null;
+
+                                const isVerified = m?.isVerified;
+
+                                return !isVerified ? (
+                                    <Button
+                                        onClick={() => {
+                                            if (scannedParticipant && scannedMemberIndex >= 0) {
+                                                verifyMember(scannedParticipant.id, scannedMemberIndex);
+                                                setScannedParticipant(null);
+                                                setScannedMemberIndex(-1);
+                                            } else if (scannedParticipant) {
+                                                updateStatus(scannedParticipant.id, "Verified");
+                                                setScannedParticipant(null);
+                                                setScannedMemberIndex(-1);
+                                            }
+                                        }}
+                                        className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-6 text-lg rounded-2xl shadow-lg shadow-green-200"
+                                    >
+                                        <CheckCircle className="mr-2 h-6 w-6" /> Admit Participant
+                                    </Button>
+                                ) : (
+                                    <div className="text-center p-4 bg-green-50 rounded-2xl border border-green-200">
+                                        <p className="font-bold text-green-700 flex items-center justify-center gap-2">
+                                            <CheckCircle className="h-5 w-5" /> Participant Already Verified
+                                        </p>
+                                    </div>
+                                );
+                            })()}
+
+                            <Button onClick={() => {
+                                setScannedParticipant(null);
+                                setScannedMemberIndex(-1);
+                            }} variant="outline" className="w-full font-bold text-slate-600 border-2 rounded-2xl py-6">
+                                Cancel
                             </Button>
                         </div>
                     </div>
@@ -377,21 +388,34 @@ const AdminMainDashboard = ({
                 <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
                     <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                         <Users className="text-primary" />
-                        Registered Teams
+                        Registered Participants
                     </h2>
                     <div className="flex gap-2 w-full md:w-auto">
                         <div className="relative flex-1 md:w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <Input
-                                placeholder="Search participants..."
+                                placeholder={`Search by ${searchFilter === 'all' ? 'everything' : searchFilter}...`}
                                 value={searchQuery}
                                 onChange={handleSearchChange}
                                 className="pl-9 bg-slate-50/50 border-slate-200 text-slate-900"
                             />
                         </div>
-                        <Button variant="outline" size="icon" className="border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-                            <Filter className="w-4 h-4" />
-                        </Button>
+                        <Select value={searchFilter} onValueChange={setSearchFilter}>
+                            <SelectTrigger className="w-[110px] bg-slate-50/50 border-slate-200 text-slate-600 focus:ring-purple-500 rounded-lg h-10">
+                                <div className="flex items-center gap-2">
+                                    <Filter className="w-4 h-4" />
+                                    <SelectValue placeholder="Filter" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                <SelectItem value="all" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">All</SelectItem>
+                                <SelectItem value="date" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Date</SelectItem>
+                                <SelectItem value="name" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Name</SelectItem>
+                                <SelectItem value="college" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">College</SelectItem>
+                                <SelectItem value="verified" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Verified</SelectItem>
+                                <SelectItem value="pending" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Pending</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
 
@@ -399,7 +423,7 @@ const AdminMainDashboard = ({
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-50/50">
                             <tr className="border-b border-slate-100">
-                                <th className="text-slate-500 font-semibold px-6 py-4 whitespace-nowrap text-xs uppercase tracking-wider">Team ID</th>
+                                <th className="text-slate-500 font-semibold px-6 py-4 whitespace-nowrap text-xs uppercase tracking-wider">S.No</th>
                                 <th className="text-slate-500 font-semibold px-6 py-4 whitespace-nowrap text-xs uppercase tracking-wider">Members</th>
                                 <th className="text-slate-500 font-semibold px-6 py-4 whitespace-nowrap text-xs uppercase tracking-wider">College</th>
                                 <th className="text-slate-500 font-semibold px-6 py-4 whitespace-nowrap hidden lg:table-cell text-xs uppercase tracking-wider">Events</th>
@@ -416,77 +440,97 @@ const AdminMainDashboard = ({
                                     </td>
                                 </tr>
                             ) : (
-                                filteredRegistrations.map((reg) => (
-                                    <tr
-                                        key={reg.id}
-                                        className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                                        onClick={() => setScannedParticipant(reg)}
-                                    >
-                                        <td className="px-6 py-4 font-mono text-[11px] text-slate-500 font-medium">
-                                            #{reg.id.slice(0, 8).toUpperCase()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold text-slate-900 flex items-center gap-2 group-hover:text-primary transition-colors">
-                                                {reg.name}
-                                                {reg.members && reg.members.length > 1 && (
-                                                    <span className="text-[10px] bg-primary/5 text-primary px-1.5 py-0.5 rounded-full font-black border border-primary/10">
-                                                        +{reg.members.length - 1}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="text-[11px] text-slate-400 font-medium">{reg.phone}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm font-semibold text-slate-700 truncate max-w-[150px]" title={reg.college}>{reg.college}</div>
-                                            <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider">{reg.department}</div>
-                                        </td>
-                                        <td className="px-6 py-4 hidden lg:table-cell">
-                                            <div className="flex flex-wrap gap-1">
-                                                {(Array.isArray(reg.events) ? reg.events : [reg.events]).filter(e => ALLOWED_EVENTS.includes(e)).slice(0, 2).map((e: string, i: number) => (
-                                                    <span key={i} className="text-[9px] font-black uppercase bg-slate-50 text-slate-500 px-2 py-0.5 rounded border border-slate-100 whitespace-nowrap">{e}</span>
-                                                ))}
-                                                {(Array.isArray(reg.events) ? reg.events : [reg.events]).filter(e => ALLOWED_EVENTS.includes(e)).length > 2 && (
-                                                    <span className="text-[10px] text-slate-300 font-bold">+{(Array.isArray(reg.events) ? reg.events : [reg.events]).filter(e => ALLOWED_EVENTS.includes(e)).length - 2}</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 hidden lg:table-cell">
-                                            <div className="text-[10px] font-mono text-slate-500 font-bold bg-slate-50 px-2 py-1 rounded border border-slate-100 inline-block">{reg.transactionId || 'CASH/GUEST'}</div>
-                                            {reg.upiName && <div className="text-[9px] text-primary font-black uppercase mt-1 tracking-tight">{reg.upiName}</div>}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border ${reg.status === 'Verified'
-                                                ? 'bg-green-50 text-green-700 border-green-100'
-                                                : 'bg-orange-50 text-orange-700 border-orange-100'
-                                                }`}>
-                                                {reg.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                            <Button variant="ghost" size="icon" onClick={() => setScannedParticipant(reg)} className="h-8 w-8 text-primary hover:bg-primary/10">
-                                                <ScanLine size={14} />
-                                            </Button>
+                                (() => {
+                                    let snoCounter = 1;
+                                    return filteredRegistrations.flatMap((reg) => {
+                                        const members = reg.members || [{
+                                            name: reg.name,
+                                            department: reg.department,
+                                            college: reg.college,
+                                            phone: reg.phone,
+                                            email: reg.email,
+                                            events: reg.events
+                                        }];
 
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-slate-400 hover:text-purple-600 hover:bg-purple-50"
-                                                onClick={() => setQrDialogRegistration(reg)}
-                                            >
-                                                <QrCode size={14} />
-                                            </Button>
+                                        // Using map here results in array of arrays. The outer flatMap flattens the first level,
+                                        // so we get a single 1D array of <tr> elements.
+                                        return members.flatMap((m: any, index: number) => {
+                                            const currentSno = snoCounter++;
+                                            return (
+                                                <tr
+                                                    key={`${reg.id}-${index}`}
+                                                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                                                    onClick={() => {
+                                                        setScannedParticipant(reg);
+                                                        setScannedMemberIndex(index);
+                                                    }}
+                                                >
+                                                    <td className="px-6 py-4 font-mono text-[11px] text-slate-500 font-medium">
+                                                        {currentSno}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-bold text-slate-900 flex items-center gap-2 group-hover:text-primary transition-colors">
+                                                            {m.name}
+                                                        </div>
+                                                        <div className="text-[11px] text-slate-400 font-medium">{m.phone}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="text-sm font-semibold text-slate-700 truncate max-w-[150px]" title={m.college}>{m.college}</div>
+                                                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider">{m.department}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 hidden lg:table-cell">
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {(Array.isArray(m.events) ? m.events : [m.events]).filter((e: string) => ALLOWED_EVENTS.includes(e)).slice(0, 2).map((e: string, i: number) => (
+                                                                <span key={i} className="text-[9px] font-black uppercase bg-slate-50 text-slate-500 px-2 py-0.5 rounded border border-slate-100 whitespace-nowrap">{e}</span>
+                                                            ))}
+                                                            {(Array.isArray(m.events) ? m.events : [m.events]).filter((e: string) => ALLOWED_EVENTS.includes(e)).length > 2 && (
+                                                                <span className="text-[10px] text-slate-300 font-bold">+{(Array.isArray(m.events) ? m.events : [m.events]).filter((e: string) => ALLOWED_EVENTS.includes(e)).length - 2}</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 hidden lg:table-cell">
+                                                        <div className="text-[10px] font-mono text-slate-500 font-bold bg-slate-50 px-2 py-1 rounded border border-slate-100 inline-block">{reg.transactionId || 'CASH/GUEST'}</div>
+                                                        {reg.upiName && <div className="text-[9px] text-primary font-black uppercase mt-1 tracking-tight">{reg.upiName}</div>}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border ${m.isVerified
+                                                            ? 'bg-green-50 text-green-700 border-green-100'
+                                                            : 'bg-orange-50 text-orange-700 border-orange-100'
+                                                            }`}>
+                                                            {m.isVerified ? 'VERIFIED' : 'PENDING'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                                        <Button variant="ghost" size="icon" onClick={() => {
+                                                            setScannedParticipant(reg);
+                                                            setScannedMemberIndex(index);
+                                                        }} className="h-8 w-8 text-primary hover:bg-primary/10">
+                                                            <ScanLine size={14} />
+                                                        </Button>
 
-                                            {reg.status !== "Verified" && (
-                                                <Button onClick={() => updateStatus(reg.id, "Verified")} variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:bg-green-50">
-                                                    <CheckCircle size={14} />
-                                                </Button>
-                                            )}
-                                            <Button onClick={() => handleDelete(reg.id)} variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50">
-                                                <Trash2 size={14} />
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-purple-600 hover:bg-purple-50"
+                                                            onClick={() => setQrDialogRegistration(reg)}
+                                                        >
+                                                            <QrCode size={14} />
+                                                        </Button>
+
+                                                        {!m.isVerified && (
+                                                            <Button onClick={() => verifyMember(reg.id, index)} variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:bg-green-50" title="Verify Participant">
+                                                                <CheckCircle size={14} />
+                                                            </Button>
+                                                        )}
+                                                        <Button onClick={() => handleDelete(reg.id, index)} variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50" title="Delete Participant">
+                                                            <Trash2 size={14} />
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        });
+                                    })
+                                })()
                             )}
                         </tbody>
                     </table>
