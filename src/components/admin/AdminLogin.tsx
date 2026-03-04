@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -11,13 +11,17 @@ interface AdminLoginProps {
 }
 
 const AdminLogin = ({ onLogin, isLoading }: AdminLoginProps) => {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
+    const [selectedMode, setSelectedMode] = useState<'dashboard' | 'attendance' | null>(null);
+    const [pin, setPin] = useState("");
 
-    const handleSubmit = async (e: React.MouseEvent, mode: 'dashboard' | 'attendance') => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!username || !password) return;
-        await onLogin(username, password, mode);
+        if (!selectedMode || !pin) return;
+
+        // We use a fixed generic username and use the PIN as the password for Firebase Auth
+        // For Dashboard we might use "admin", for Attendance we might use "attendance"
+        const username = selectedMode === 'dashboard' ? 'admin' : 'attendance';
+        await onLogin(username, pin, selectedMode);
     };
 
     return (
@@ -27,43 +31,85 @@ const AdminLogin = ({ onLogin, isLoading }: AdminLoginProps) => {
                     <div className="flex flex-col items-center mb-8">
                         <ShieldCheck className="h-12 w-12 text-purple-600 mb-4" />
                         <h1 className="text-2xl font-bold text-slate-800">Admin Control</h1>
+                        <p className="text-slate-500 mt-2 text-sm text-center">
+                            Select the portal you want to access
+                        </p>
                     </div>
-                    <div className="space-y-4">
-                        <Input
-                            placeholder="ID"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            required
-                            disabled={isLoading}
-                        />
-                        <Input
-                            type="password"
-                            placeholder="Password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            disabled={isLoading}
-                        />
 
-                        <div className="grid grid-cols-2 gap-4 pt-2">
-                            <Button
-                                onClick={(e) => handleSubmit(e, 'dashboard')}
-                                className="h-11 bg-purple-600 hover:bg-purple-700 font-bold"
-                                disabled={isLoading}
+                    <AnimatePresence mode="wait">
+                        {!selectedMode ? (
+                            <motion.div
+                                key="mode-selection"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                className="space-y-4"
                             >
-                                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "1. Dashboard"}
-                            </Button>
-                            <Button
-                                onClick={(e) => handleSubmit(e, 'attendance')}
-                                variant="outline"
-                                className="h-11 border-purple-600 text-purple-600 hover:bg-purple-50 font-bold"
-                                disabled={isLoading}
+                                <Button
+                                    onClick={() => setSelectedMode('dashboard')}
+                                    className="w-full h-14 bg-purple-600 hover:bg-purple-700 font-bold text-lg"
+                                >
+                                    1. Dashboard
+                                </Button>
+                                <Button
+                                    onClick={() => setSelectedMode('attendance')}
+                                    variant="outline"
+                                    className="w-full h-14 border-purple-600 text-purple-600 hover:bg-purple-50 font-bold text-lg"
+                                >
+                                    2. Attendance
+                                </Button>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="pin-entry"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
                             >
-                                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "2. Attendance"}
-                            </Button>
-                        </div>
-                    </div>
-                    <Link to="/" className="mt-6 text-sm text-slate-400 text-center block">← Back to Website</Link>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => {
+                                                setSelectedMode(null);
+                                                setPin("");
+                                            }}
+                                            className="h-8 w-8"
+                                        >
+                                            <ArrowLeft className="h-4 w-4" />
+                                        </Button>
+                                        <h2 className="font-semibold text-slate-700 capitalize">
+                                            {selectedMode} Access
+                                        </h2>
+                                    </div>
+                                    <Input
+                                        type="password"
+                                        placeholder="Enter 6-Digit PIN"
+                                        value={pin}
+                                        onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                        maxLength={6}
+                                        className="text-center text-2xl tracking-[0.5em] h-14 font-bold"
+                                        required
+                                        disabled={isLoading}
+                                        autoFocus
+                                    />
+                                    <Button
+                                        type="submit"
+                                        className="w-full h-12 bg-purple-600 hover:bg-purple-700 font-bold"
+                                        disabled={isLoading || pin.length < 6}
+                                    >
+                                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify PIN"}
+                                    </Button>
+                                </form>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <Link to="/" className="mt-8 text-sm text-slate-400 text-center block hover:text-slate-600 transition-colors">
+                        ← Back to Website
+                    </Link>
                 </div>
             </motion.div>
         </div>
