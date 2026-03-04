@@ -96,7 +96,7 @@ export const addRegistration = async (data: Omit<Registration, "id" | "status" |
 };
 
 export const subscribeToRegistrations = (callback: (data: Registration[]) => void) => {
-    const q = query(collection(db, COLLECTION_NAME), orderBy("timestamp", "desc"));
+    const q = query(collection(db, COLLECTION_NAME), orderBy("timestamp", "asc"));
     return onSnapshot(q, (snapshot) => {
         const registrations = snapshot.docs.map(doc => ({
             id: doc.id,
