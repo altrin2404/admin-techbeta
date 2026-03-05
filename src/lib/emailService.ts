@@ -37,7 +37,7 @@ export const sendVerificationEmail = async (
             to_email: toEmail,
             transaction_id: transactionId,
             qr_code_url: qrCodeUrl,
-            event_date: "March 13, 2026",
+            event_date: "March 27, 2026",
             event_time: "09:00 AM",
             event_venue: "Rock Auditorium, SXCCE, Nagercoil",
             message: "Congratulations! Your registration for TechBeta'26 has been verified. Please show the QR code below at the registration desk."
