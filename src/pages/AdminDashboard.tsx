@@ -26,7 +26,7 @@ const AdminAttendanceMode = lazy(() => import("@/components/admin/AdminAttendanc
 
 const ADMIN_EMAIL_DOMAIN = "techbeta2k26.firebaseapp.com";
 
-const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft"];
+const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft", "LogoHub"];
 
 const AdminDashboard = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);

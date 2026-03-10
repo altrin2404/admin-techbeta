@@ -4,7 +4,7 @@ import { showToast } from "@/lib/showToast";
 import { type Registration } from "@/lib/registrationService";
 import { useMemo } from "react";
 
-const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft"];
+const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft", "LogoHub"];
 
 interface AdminAttendanceModeProps {
     activeEvent: string;

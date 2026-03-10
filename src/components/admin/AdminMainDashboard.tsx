@@ -20,7 +20,7 @@ import {
 import { type Registration } from "@/lib/registrationService";
 import { Loader2 } from "lucide-react";
 
-const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft"];
+const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft", "LogoHub"];
 
 // Sub-component for QR Code to avoid re-renders
 const QRCodeImage = memo(({ data }: { data: string }) => {
