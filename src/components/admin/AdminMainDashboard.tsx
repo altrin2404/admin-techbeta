@@ -172,10 +172,33 @@ const AdminMainDashboard = ({
     const [qrDialogRegistration, setQrDialogRegistration] = useState<Registration | null>(null);
 
     const stats = useMemo(() => {
-        const totalMembers = registrations.reduce((acc, curr) => acc + (curr.members ? curr.members.length : 1), 0);
-        const verifiedRevenueCount = registrations.filter(r => r.status === "Verified").reduce((acc, curr) => acc + (curr.members ? curr.members.length : 1), 0);
-        const pendingCount = registrations.filter(r => r.status === "Pending Verification").length;
-        return { totalMembers, verifiedRevenueCount, pendingCount };
+        let totalMembers = 0;
+        let verifiedCount = 0;
+        let pendingCount = 0;
+
+        registrations.forEach(reg => {
+            if (reg.status === "Rejected") return;
+
+            const members = reg.members || [{
+                name: reg.name,
+                isVerified: reg.status === "Verified"
+            }];
+
+            totalMembers += members.length;
+            members.forEach(m => {
+                if (m.isVerified) {
+                    verifiedCount++;
+                } else {
+                    pendingCount++;
+                }
+            });
+        });
+
+        return { 
+            totalMembers, 
+            verifiedRevenueCount: verifiedCount * 200, 
+            pendingCount 
+        };
     }, [registrations]);
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
