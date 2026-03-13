@@ -586,7 +586,7 @@ const AdminDashboard = () => {
             }];
 
             const filteredMembers = members.filter(m => {
-                const isMemberVerified = m.isVerified || reg.status === "Verified";
+                const isMemberVerified = m.isVerified;
                 
                 // 1. Status Filter (Verified / Pending)
                 if (searchFilter === "verified" && !isMemberVerified) return false;
