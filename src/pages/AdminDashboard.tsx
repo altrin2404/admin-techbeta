@@ -18,6 +18,7 @@ import { auth } from "@/lib/firebase";
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import QRScannerDialog from "@/components/QRScannerDialog";
+import PINVerificationDialog from "@/components/PINVerificationDialog";
 import { useDebounce } from "@/hooks/use-debounce";
 
 // Lazy Loaded Components for Performance
@@ -45,6 +46,18 @@ const AdminDashboard = () => {
     const [recentScans, setRecentScans] = useState<{ name: string, event: string, status: 'success' | 'error', time: string, message: string }[]>([]);
     const [scannedParticipant, setScannedParticipant] = useState<Registration | null>(null);
     const [scannedMemberIndex, setScannedMemberIndex] = useState<number>(-1);
+
+    const [pinDialog, setPinDialog] = useState<{
+        isOpen: boolean;
+        title: string;
+        description: string;
+        onVerified: () => void;
+    }>({
+        isOpen: false,
+        title: "",
+        description: "",
+        onVerified: () => { }
+    });
 
     useEffect(() => {
         let unsubscribeFirestore: (() => void) | null = null;
@@ -184,34 +197,38 @@ const AdminDashboard = () => {
     };
 
     const handleDelete = async (id: string, memberIndex?: number) => {
-        const pin = window.prompt("Security Check: Enter your admin PIN to confirm deletion:");
-        if (pin === null) return;
-        if (pin !== loginPin) {
-            showToast.error("Invalid PIN. Deletion cancelled.");
-            return;
-        }
+        const executeDelete = async () => {
+            if (!window.confirm("Are you sure you want to delete this participant? This action cannot be undone.")) return;
 
-        if (!window.confirm("Are you sure you want to delete this participant?")) return;
-
-        if (memberIndex !== undefined) {
-            const reg = registrations.find(r => r.id === id);
-            if (reg && reg.members && reg.members.length > 1) {
-                const updatedMembers = [...reg.members];
-                updatedMembers.splice(memberIndex, 1);
-                const result = await import('@/lib/registrationService').then(m => m.updateRegistrationMembers(id, updatedMembers));
-                if (result.success) {
-                    showToast.success("Participant removed successfully");
-                } else {
-                    showToast.error("Failed to remove participant");
+            if (memberIndex !== undefined) {
+                const reg = registrations.find(r => r.id === id);
+                if (reg && reg.members && reg.members.length > 1) {
+                    const updatedMembers = [...reg.members];
+                    updatedMembers.splice(memberIndex, 1);
+                    const result = await import('@/lib/registrationService').then(m => m.updateRegistrationMembers(id, updatedMembers));
+                    if (result.success) {
+                        showToast.success("Participant removed successfully");
+                    } else {
+                        showToast.error("Failed to remove participant");
+                    }
+                    return;
                 }
-                return;
             }
-        }
 
-        // If it was the last member or no memberIndex given, delete the whole doc
-        const result = await deleteRegistration(id);
-        if (result.success) showToast.success("Deleted successfully");
-        else showToast.error("Failed to delete");
+            const result = await deleteRegistration(id);
+            if (result.success) {
+                showToast.success("Registration deleted successfully");
+            } else {
+                showToast.error("Failed to delete registration");
+            }
+        };
+
+        setPinDialog({
+            isOpen: true,
+            title: "Confirm Deletion",
+            description: "Deleting a participant requires admin authorization.",
+            onVerified: executeDelete
+        });
     };
 
     const exportAllParticipantsExcel = async () => {
@@ -602,35 +619,37 @@ const AdminDashboard = () => {
     };
 
     const handleRemoveAttendance = async (participantId: string, memberIndex: number, eventName: string) => {
-        const pin = window.prompt(`Security Check: Enter admin PIN to remove attendance for ${eventName}:`);
-        if (pin === null) return;
-        if (pin !== loginPin) {
-            showToast.error("Invalid PIN. Action cancelled.");
-            return;
-        }
+        const executeRemove = async () => {
+            try {
+                const participant = registrations.find(r => r.id === participantId);
+                if (!participant || !participant.members) return;
 
-        try {
-            const participant = registrations.find(r => r.id === participantId);
-            if (!participant || !participant.members) return;
+                const updatedMembers = [...participant.members];
+                if (updatedMembers[memberIndex].attendance?.[eventName]) {
+                    const newAttendance = { ...updatedMembers[memberIndex].attendance };
+                    delete newAttendance[eventName];
 
-            const updatedMembers = [...participant.members];
-            if (updatedMembers[memberIndex].attendance?.[eventName]) {
-                const newAttendance = { ...updatedMembers[memberIndex].attendance };
-                delete newAttendance[eventName];
+                    updatedMembers[memberIndex] = {
+                        ...updatedMembers[memberIndex],
+                        attendance: newAttendance
+                    };
 
-                updatedMembers[memberIndex] = {
-                    ...updatedMembers[memberIndex],
-                    attendance: newAttendance
-                };
-
-                const { updateRegistrationMembers } = await import("@/lib/registrationService");
-                await updateRegistrationMembers(participant.id, updatedMembers);
-                showToast.success(`Attendance removed: ${updatedMembers[memberIndex].name}`);
+                    const { updateRegistrationMembers } = await import("@/lib/registrationService");
+                    await updateRegistrationMembers(participant.id, updatedMembers);
+                    showToast.success(`Attendance removed: ${updatedMembers[memberIndex].name}`);
+                }
+            } catch (error) {
+                console.error("Failed to remove attendance:", error);
+                showToast.error("Failed to remove attendance");
             }
-        } catch (error) {
-            console.error("Failed to remove attendance:", error);
-            showToast.error("Failed to remove attendance");
-        }
+        };
+
+        setPinDialog({
+            isOpen: true,
+            title: "Remove Attendance",
+            description: `Authorizing removal of attendance for ${eventName}.`,
+            onVerified: executeRemove
+        });
     };
 
     const handleScan = async (decodedText: string) => {
@@ -814,6 +833,21 @@ const AdminDashboard = () => {
                     isOpen={isScannerOpen}
                     onClose={() => setIsScannerOpen(false)}
                     onScan={handleScan}
+                />
+
+                <PINVerificationDialog
+                    isOpen={pinDialog.isOpen}
+                    onClose={() => setPinDialog(prev => ({ ...prev, isOpen: false }))}
+                    title={pinDialog.title}
+                    description={pinDialog.description}
+                    onVerify={(pin) => {
+                        if (pin === loginPin) {
+                            pinDialog.onVerified();
+                            setPinDialog(prev => ({ ...prev, isOpen: false }));
+                        } else {
+                            showToast.error("Incorrect Security PIN");
+                        }
+                    }}
                 />
             </main>
         </div>
