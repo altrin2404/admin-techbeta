@@ -231,15 +231,10 @@ const AdminMainDashboard = ({
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl border shadow-sm p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="relative w-full md:max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                        placeholder="Search Team Lead, College or TxID..."
-                        value={searchQuery}
-                        onChange={handleSearchChange}
-                        className="pl-10 h-10 bg-slate-50/50"
-                    />
+            <div className="bg-white rounded-2xl border shadow-sm p-6 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-black text-slate-800 tracking-tight">Management Console</h2>
+                    <p className="text-xs font-medium text-slate-400">Manage registrations, payments and QR tickets</p>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
 

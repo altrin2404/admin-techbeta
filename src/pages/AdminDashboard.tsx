@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import QRCode from "qrcode";
 import { showToast } from "@/lib/showToast";
 import {
-    subscribeToRegistrations,
-    updateRegistrationStatus,
     deleteRegistration,
-    type Registration
+    type Registration,
+    type TeamMember
 } from "@/lib/registrationService";
 import { sendVerificationEmail } from "@/lib/emailService";
 import { auth } from "@/lib/firebase";
@@ -567,42 +566,49 @@ const AdminDashboard = () => {
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
     const filteredRegistrations = useMemo(() => {
-        if (!debouncedSearchQuery && searchFilter === "all") return registrations;
-
-        const query = (debouncedSearchQuery || "").toLowerCase();
+        const query = (debouncedSearchQuery || "").toLowerCase().trim();
+        
+        // Return everything if no filters active
+        if (!query && searchFilter === "all") return registrations;
 
         return registrations.reduce((acc: Registration[], reg) => {
-            const members: import('@/lib/registrationService').TeamMember[] = reg.members || [{
-                name: reg.name, department: reg.department, college: reg.college, year: (reg as any).year,
-                phone: reg.phone, email: reg.email, events: reg.events, isVerified: reg.status === "Verified"
+            const members: TeamMember[] = reg.members || [{
+                name: reg.name, 
+                department: reg.department, 
+                college: reg.college, 
+                year: (reg as any).year || "",
+                phone: reg.phone, 
+                email: reg.email, 
+                events: reg.events, 
+                isVerified: reg.status === "Verified"
             }];
-
-            // Check registration-level matches first
-            const matchesRegDate = reg.registrationDate && (
-                reg.registrationDate.toLowerCase().includes(query) ||
-                new Date(reg.registrationDate).toLocaleDateString().toLowerCase().includes(query)
-            );
-            const matchesTxId = reg.transactionId?.toLowerCase().includes(query);
 
             const filteredMembers = members.filter(m => {
                 const isMemberVerified = m.isVerified || reg.status === "Verified";
-
-                // Filter by Status if applicable
+                
+                // 1. Status Filter (Verified / Pending)
                 if (searchFilter === "verified" && !isMemberVerified) return false;
                 if (searchFilter === "pending" && isMemberVerified) return false;
 
-                // If no search query, then we just care about the status filter or dropdown filter
+                // 2. Search Query (matches against everything)
                 if (!query) return true;
 
-                const matchesName = m.name.toLowerCase().includes(query);
-                const matchesCollege = m.college.toLowerCase().includes(query);
+                const eventList = Array.isArray(m.events) ? m.events : [m.events];
+                const matchesEvent = eventList.some(e => e.toLowerCase().includes(query));
+                
+                const matchesName = m.name?.toLowerCase().includes(query);
+                const matchesCollege = m.college?.toLowerCase().includes(query);
+                const matchesDept = m.department?.toLowerCase().includes(query);
+                const matchesPhone = m.phone?.toLowerCase().includes(query);
+                const matchesEmail = m.email?.toLowerCase().includes(query);
+                const matchesTxId = reg.transactionId?.toLowerCase().includes(query);
+                const matchesUpi = reg.upiName?.toLowerCase().includes(query);
+                const matchesRegDate = reg.registrationDate && (
+                    reg.registrationDate.toLowerCase().includes(query) ||
+                    new Date(reg.registrationDate).toLocaleDateString().toLowerCase().includes(query)
+                );
 
-                if (searchFilter === "name") return matchesName;
-                if (searchFilter === "college") return matchesCollege;
-                if (searchFilter === "date") return !!matchesRegDate;
-
-                // "all", "verified", "pending" fallback to matching anything
-                return matchesName || matchesCollege || !!matchesRegDate || !!matchesTxId;
+                return matchesName || matchesCollege || matchesDept || matchesPhone || matchesEmail || matchesEvent || matchesTxId || matchesUpi || !!matchesRegDate;
             });
 
             if (filteredMembers.length > 0) {
