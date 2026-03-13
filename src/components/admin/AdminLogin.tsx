@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
 
 interface AdminLoginProps {
     onLogin: (username: string, password: string, mode: 'dashboard' | 'attendance' | 'event-attendance') => Promise<void>;
