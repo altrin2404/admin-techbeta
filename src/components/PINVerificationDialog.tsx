@@ -51,14 +51,14 @@ const PINVerificationDialog = ({
                     <div className="relative group">
                         <Input
                             type="password"
-                            placeholder="Enter 6-digit PIN"
+                            placeholder="------"
                             value={pin}
                             onChange={(e) => setPin(e.target.value)}
                             autoFocus
-                            className="h-14 bg-slate-50 border-2 border-slate-100 focus:border-purple-600 rounded-2xl text-center text-2xl tracking-[1em] font-black transition-all"
+                            className={`h-14 bg-slate-50 border-2 border-slate-100 focus:border-purple-600 rounded-2xl text-center text-2xl font-black transition-all ${pin ? 'tracking-[0.8em]' : 'tracking-normal'}`}
                         />
                         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-purple-600 transition-colors">
-                            <ShieldCheck className="h-5 w-5" />
+                            <Lock className="h-5 w-5" />
                         </div>
                     </div>
 
