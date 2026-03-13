@@ -332,8 +332,16 @@ const AdminDashboard = () => {
 
             for (const reg of registrations) {
                 const members = reg.members || [{
-                    name: reg.name, email: reg.email, phone: reg.phone, college: reg.college, department: reg.department, events: reg.events, attendance: (reg as any).attendance, participationType: (reg as any).participationType
-                }];
+                    name: reg.name, 
+                    email: reg.email, 
+                    phone: reg.phone, 
+                    college: reg.college, 
+                    department: reg.department, 
+                    events: reg.events, 
+                    attendance: (reg as any).attendance, 
+                    participationType: (reg as any).participationType,
+                    teamName: (reg as any).teamName
+                }] as any[];
 
                 const isTeamGroupedEvent = ["FutureMinds", "Postercraft"].includes(eventName);
 

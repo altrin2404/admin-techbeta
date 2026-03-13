@@ -20,6 +20,8 @@ export interface TeamMember {
     year: string;
     events: string[];
     attendance?: { [eventName: string]: { attended: boolean; timestamp: string } };
+    participationType?: { [eventName: string]: "Individual" | "Team" };
+    teamName?: { [eventName: string]: string };
     isVerified?: boolean;
 }
 
