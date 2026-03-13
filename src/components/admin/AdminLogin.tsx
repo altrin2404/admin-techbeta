@@ -6,20 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 
 interface AdminLoginProps {
-    onLogin: (username: string, password: string, mode: 'dashboard' | 'attendance') => Promise<void>;
+    onLogin: (username: string, password: string, mode: 'dashboard' | 'attendance' | 'event-attendance') => Promise<void>;
     isLoading: boolean;
 }
 
 const AdminLogin = ({ onLogin, isLoading }: AdminLoginProps) => {
-    const [selectedMode, setSelectedMode] = useState<'dashboard' | 'attendance' | null>(null);
+    const [selectedMode, setSelectedMode] = useState<'dashboard' | 'attendance' | 'event-attendance' | null>(null);
     const [pin, setPin] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedMode || !pin) return;
 
-        // We use a fixed generic username and use the PIN as the password for Firebase Auth
-        // For Dashboard we might use "admin", for Attendance we might use "attendance"
+        // For Dashboard we might use "admin", for Event Attendance we might use "attendance"
+        // For the new "Attendance" (empty) option, we'll use a placeholder or the same as others if needed
         const username = selectedMode === 'dashboard' ? 'admin' : 'attendance';
         await onLogin(username, pin, selectedMode);
     };
@@ -57,6 +57,13 @@ const AdminLogin = ({ onLogin, isLoading }: AdminLoginProps) => {
                                     className="w-full h-14 border-purple-600 text-purple-600 hover:bg-purple-50 font-bold text-lg"
                                 >
                                     2. Attendance
+                                </Button>
+                                <Button
+                                    onClick={() => setSelectedMode('event-attendance')}
+                                    variant="outline"
+                                    className="w-full h-14 border-purple-600 text-purple-600 hover:bg-purple-50 font-bold text-lg"
+                                >
+                                    3. Event Attendance
                                 </Button>
                             </motion.div>
                         ) : (

@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     LogOut, ShieldCheck, Loader2
 } from "lucide-react";
@@ -21,9 +21,10 @@ import QRScannerDialog from "@/components/QRScannerDialog";
 import { useDebounce } from "@/hooks/use-debounce";
 
 // Lazy Loaded Components for Performance
-const AdminLogin = lazy(() => import("@/components/admin/AdminLogin"));
-const AdminMainDashboard = lazy(() => import("@/components/admin/AdminMainDashboard"));
-const AdminAttendanceMode = lazy(() => import("@/components/admin/AdminAttendanceMode"));
+import AdminLogin from "@/components/admin/AdminLogin";
+import AdminMainDashboard from "@/components/admin/AdminMainDashboard";
+import AdminAttendanceMode from "@/components/admin/AdminAttendanceMode";
+import AdminGeneralAttendance from "@/components/admin/AdminGeneralAttendance";
 
 const ADMIN_EMAIL_DOMAIN = "techbeta2k26.firebaseapp.com";
 
@@ -31,9 +32,10 @@ const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft"
 
 const AdminDashboard = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [loginPin, setLoginPin] = useState("");
     const [isAuthLoading, setIsAuthLoading] = useState(true);
     const [isLoginLoading, setIsLoginLoading] = useState(false);
-    const [adminMode, setAdminMode] = useState<'none' | 'dashboard' | 'attendance'>('none');
+    const [adminMode, setAdminMode] = useState<'none' | 'dashboard' | 'attendance' | 'event-attendance'>('none');
     const [activeEvent, setActiveEvent] = useState<string>("");
     const [registrations, setRegistrations] = useState<Registration[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -71,13 +73,17 @@ const AdminDashboard = () => {
         };
     }, []);
 
-    const handleLogin = async (username: string, password: string, mode: 'dashboard' | 'attendance') => {
+    const handleLogin = async (username: string, password: string, mode: 'dashboard' | 'attendance' | 'event-attendance') => {
         setIsLoginLoading(true);
         try {
             const email = `${username}@${ADMIN_EMAIL_DOMAIN}`;
             await signInWithEmailAndPassword(auth, email, password);
+            setLoginPin(password);
             setAdminMode(mode);
-            showToast.success(`Login Successful: ${mode === 'dashboard' ? 'Dashboard' : 'Attendance'}`);
+            let modeTitle = "Dashboard";
+            if (mode === 'attendance') modeTitle = "Attendance";
+            if (mode === 'event-attendance') modeTitle = "Event Attendance";
+            showToast.success(`Login Successful: ${modeTitle}`);
         } catch (error: any) {
             console.error("Login error:", error);
             const code = error?.code || "unknown";
@@ -89,6 +95,7 @@ const AdminDashboard = () => {
 
     const handleLogout = async () => {
         await signOut(auth);
+        setLoginPin("");
         setAdminMode('none');
     };
 
@@ -177,6 +184,13 @@ const AdminDashboard = () => {
     };
 
     const handleDelete = async (id: string, memberIndex?: number) => {
+        const pin = window.prompt("Security Check: Enter your admin PIN to confirm deletion:");
+        if (pin === null) return;
+        if (pin !== loginPin) {
+            showToast.error("Invalid PIN. Deletion cancelled.");
+            return;
+        }
+
         if (!window.confirm("Are you sure you want to delete this participant?")) return;
 
         if (memberIndex !== undefined) {
@@ -466,6 +480,94 @@ const AdminDashboard = () => {
         showToast.success(includeAttendance ? "Attendance sheets exported!" : "Master sheets exported!");
     };
 
+    const exportGeneralAttendanceExcel = async () => {
+        const ExcelJS = (await import("exceljs")).default;
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("General Attendance");
+        const ATTENDANCE_KEY = "General";
+
+        worksheet.columns = [
+            { header: "QR Code", key: "qr", width: 15 },
+            { header: "S.No", key: "sno", width: 10 },
+            { header: "Name", key: "name", width: 25 },
+            { header: "Dept", key: "department", width: 20 },
+            { header: "College", key: "college", width: 30 },
+            { header: "Phone", key: "phone", width: 20 },
+            { header: "Email", key: "email", width: 35 },
+            { header: "Status", key: "status", width: 15 },
+            { header: "Check-in Time", key: "time", width: 25 }
+        ];
+
+        // Style header row
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25;
+        headerRow.eachCell((cell) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF2563EB' } // Blue theme for general
+            };
+        });
+
+        showToast.info("Generating General Attendance report...");
+
+        let snoCounter = 1;
+        for (const reg of registrations) {
+            const members = reg.members || [{
+                name: reg.name, department: reg.department, college: reg.college, phone: reg.phone, email: reg.email, events: reg.events, attendance: (reg as any).attendance
+            }];
+
+            for (let i = 0; i < members.length; i++) {
+                const m = members[i];
+                const attendanceInfo = m.attendance?.[ATTENDANCE_KEY];
+                
+                const row = worksheet.addRow({
+                    sno: snoCounter++,
+                    name: m.name,
+                    department: m.department,
+                    college: m.college,
+                    phone: m.phone,
+                    email: m.email,
+                    status: attendanceInfo?.attended ? "Present" : "Absent",
+                    time: attendanceInfo?.attended ? new Date(attendanceInfo.timestamp).toLocaleString() : "N/A"
+                });
+
+                row.height = 80;
+                row.alignment = { vertical: 'middle' };
+
+                try {
+                    const qrData = JSON.stringify({ id: reg.id, index: i, name: m.name, events: m.events });
+                    const dataUrl = await QRCode.toDataURL(qrData, { width: 150, margin: 0 });
+                    const base64 = dataUrl.split(',')[1];
+
+                    const imageId = workbook.addImage({
+                        base64: base64,
+                        extension: 'png',
+                    });
+
+                    worksheet.addImage(imageId, {
+                        tl: { col: 0.1, row: row.number - 0.95 },
+                        ext: { width: 90, height: 90 }
+                    });
+                } catch (error) {
+                    console.error(`QR embedding failed for ${m.name}:`, error);
+                    row.getCell('qr').value = 'QR Failed';
+                }
+            }
+        }
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `techbeta_general_attendance.xlsx`;
+        a.click();
+        showToast.success("General attendance report exported!");
+    };
+
     const handleMarkAttendance = async (participantId: string, memberIndex: number, eventName: string) => {
         try {
             const participant = registrations.find(r => r.id === participantId);
@@ -500,6 +602,13 @@ const AdminDashboard = () => {
     };
 
     const handleRemoveAttendance = async (participantId: string, memberIndex: number, eventName: string) => {
+        const pin = window.prompt(`Security Check: Enter admin PIN to remove attendance for ${eventName}:`);
+        if (pin === null) return;
+        if (pin !== loginPin) {
+            showToast.error("Invalid PIN. Action cancelled.");
+            return;
+        }
+
         try {
             const participant = registrations.find(r => r.id === participantId);
             if (!participant || !participant.members) return;
@@ -539,7 +648,7 @@ const AdminDashboard = () => {
                 return;
             }
 
-            if (adminMode === 'attendance') {
+            if (adminMode === 'attendance' || adminMode === 'event-attendance') {
                 setIsScannerOpen(false); // Close scanner on successful read
                 if (activeEvent) {
                     const member = participant.members ? participant.members[data.index] : null;
@@ -632,9 +741,7 @@ const AdminDashboard = () => {
 
     if (!isAuthenticated || adminMode === 'none') {
         return (
-            <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-8 w-8 text-purple-600" /></div>}>
-                <AdminLogin onLogin={handleLogin} isLoading={isLoginLoading} />
-            </Suspense>
+            <AdminLogin onLogin={handleLogin} isLoading={isLoginLoading} />
         );
     }
 
@@ -651,8 +758,7 @@ const AdminDashboard = () => {
             </nav>
 
             <main className="container mx-auto px-4 py-8 max-w-7xl">
-                <Suspense fallback={<div className="flex justify-center p-20"><Loader2 className="h-10 w-10 animate-spin text-purple-600" /></div>}>
-                    {adminMode === 'attendance' ? (
+                    {adminMode === 'event-attendance' ? (
                         <AdminAttendanceMode
                             activeEvent={activeEvent}
                             setActiveEvent={setActiveEvent}
@@ -667,6 +773,18 @@ const AdminDashboard = () => {
                             setScannedMemberIndex={setScannedMemberIndex}
                             onMarkAttendance={handleMarkAttendance}
                             onRemoveAttendance={handleRemoveAttendance}
+                        />
+                    ) : adminMode === 'attendance' ? (
+                        <AdminGeneralAttendance
+                            registrations={registrations}
+                            setIsScannerOpen={setIsScannerOpen}
+                            scannedParticipant={scannedParticipant}
+                            setScannedParticipant={setScannedParticipant}
+                            scannedMemberIndex={scannedMemberIndex}
+                            setScannedMemberIndex={setScannedMemberIndex}
+                            onMarkAttendance={handleMarkAttendance}
+                            onRemoveAttendance={handleRemoveAttendance}
+                            onExportExcel={exportGeneralAttendanceExcel}
                         />
                     ) : (
                         <AdminMainDashboard
@@ -691,7 +809,6 @@ const AdminDashboard = () => {
                             onRemoveAttendance={handleRemoveAttendance}
                         />
                     )}
-                </Suspense>
 
                 <QRScannerDialog
                     isOpen={isScannerOpen}
