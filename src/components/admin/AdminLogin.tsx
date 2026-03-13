@@ -114,9 +114,6 @@ const AdminLogin = ({ onLogin, isLoading }: AdminLoginProps) => {
                         )}
                     </AnimatePresence>
 
-                    <Link to="/" className="mt-8 text-sm text-slate-400 text-center block hover:text-slate-600 transition-colors">
-                        ← Back to Website
-                    </Link>
                 </div>
             </motion.div>
         </div>
