@@ -284,40 +284,127 @@ const AdminDashboard = () => {
             reg.members ? reg.members.flatMap(m => m.events) : reg.events
         ))).filter((e: string) => ALLOWED_EVENTS.includes(e)).sort();
 
-        showToast.info(`Generating ${includeAttendance ? 'Attendance Sheets' : 'Master Sheets'}...`);
+        showToast.info(`Generating ${includeAttendance ? 'Unified Attendance Sheet' : 'Unified Master Sheet'}...`);
+
+        const worksheet = workbook.addWorksheet(includeAttendance ? "Unified Attendance" : "Unified Master");
+        
+        // Define columns once
+        const columns = [
+            { header: "QR Code", key: "qr", width: 15 },
+            { header: "S.No", key: "sno", width: 10 },
+            { header: "Name", key: "name", width: 25 },
+            { header: "Dept", key: "department", width: 20 },
+            { header: "College", key: "college", width: 30 },
+            { header: "Phone", key: "phone", width: 20 },
+            { header: "Email", key: "email", width: 35 }
+        ];
+
+        if (includeAttendance) {
+            columns.push({ header: "Attendance", key: "attendance", width: 25 });
+        }
+
+        worksheet.columns = columns;
 
         for (const eventName of allEvents) {
-            const worksheet = workbook.addWorksheet(eventName.substring(0, 31).replace(/[\\/?*[\]]/g, ""));
-            const columns = [
-                { header: "QR Code", key: "qr", width: 15 },
-                { header: "S.No", key: "sno", width: 10 },
-                { header: "Name", key: "name", width: 20 },
-                { header: "Dept", key: "department", width: 15 },
-                { header: "College", key: "college", width: 25 },
-                { header: "Phone", key: "phone", width: 15 },
-                { header: "Email", key: "email", width: 30 }
-            ];
+            // Add a large header for the event
+            const headerRow = worksheet.addRow(["", "", eventName.toUpperCase(), "", "", "", ""]);
+            worksheet.mergeCells(headerRow.number, 3, headerRow.number, 5);
+            headerRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+            headerRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF1E40AF' } // Deep blue background
+            };
+            headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+            headerRow.height = 30;
 
-            if (includeAttendance) {
-                columns.push({ header: "Attendance", key: "attendance", width: 20 });
-            }
-
-            worksheet.columns = columns;
-
-            worksheet.getRow(1).font = { bold: true };
-            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+            // Re-add table headers for this section
+            const subHeaderRow = worksheet.addRow(columns.map(c => c.header));
+            subHeaderRow.font = { bold: true };
+            subHeaderRow.alignment = { horizontal: 'center', vertical: 'middle' };
+            subHeaderRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFF1F5F9' } // Light slate background
+            };
 
             let snoCounter = 1;
+
             for (const reg of registrations) {
                 const members = reg.members || [{
-                    name: reg.name, email: reg.email, phone: reg.phone, college: reg.college, department: reg.department, events: reg.events, attendance: (reg as any).attendance
+                    name: reg.name, email: reg.email, phone: reg.phone, college: reg.college, department: reg.department, events: reg.events, attendance: (reg as any).attendance, participationType: (reg as any).participationType
                 }];
-                const participating = members.filter((m: any) => (Array.isArray(m.events) ? m.events : [m.events]).includes(eventName));
 
-                if (participating.length > 0) {
-                    for (const m of participating) {
-                        const originalIndex = reg.members ? reg.members.findIndex(member => member.name === m.name) : 0;
-                        const attendanceInfo = m.attendance?.[eventName];
+                const isTeamGroupedEvent = ["FutureMinds", "Postercraft"].includes(eventName);
+
+                if (isTeamGroupedEvent) {
+                    // Group members by their team name for this specific event
+                    const teamsMap = new Map<string, any[]>();
+                    const individuals: any[] = [];
+
+                    for (const m of members) {
+                        const participation = (Array.isArray(m.events) ? m.events : [m.events]).includes(eventName);
+                        if (!participation) continue;
+
+                        const type = m.participationType?.[eventName];
+                        const tName = m.teamName?.[eventName];
+
+                        if (type === "Team" && tName) {
+                            if (!teamsMap.has(tName)) {
+                                teamsMap.set(tName, []);
+                            }
+                            teamsMap.get(tName)!.push(m);
+                        } else {
+                            individuals.push(m);
+                        }
+                    }
+
+                    // Process grouped teams
+                    for (const [tName, teamMembers] of teamsMap.entries()) {
+                        const rowData: any = {
+                            sno: snoCounter++,
+                            name: `${tName}: ${teamMembers.map(m => m.name).join(", ")}`,
+                            department: Array.from(new Set(teamMembers.map(m => m.department))).join(", "),
+                            college: teamMembers[0].college,
+                            phone: teamMembers.map(m => m.phone).join(", "),
+                            email: teamMembers.map(m => m.email).join(", ")
+                        };
+
+                        if (includeAttendance) {
+                            rowData.attendance = teamMembers.map(m => {
+                                const info = m.attendance?.[eventName];
+                                return info?.attended ? `${m.name}: P` : `${m.name}: A`;
+                            }).join(" | ");
+                        }
+
+                        const row = worksheet.addRow(rowData);
+                        row.height = 100;
+                        row.alignment = { vertical: 'middle', wrapText: true };
+                        
+                        worksheet.getColumn('qr').width = Math.max(worksheet.getColumn('qr').width || 15, teamMembers.length * 15);
+
+                        for (let t = 0; t < teamMembers.length; t++) {
+                            const tm = teamMembers[t];
+                            const originalIndex = reg.members ? reg.members.findIndex(member => member.name === tm.name) : t;
+                            
+                            try {
+                                const qrData = JSON.stringify({ id: reg.id, index: originalIndex, name: tm.name, events: tm.events });
+                                const dataUrl = await QRCode.toDataURL(qrData, { width: 150, margin: 0 });
+                                const base64 = dataUrl.split(',')[1];
+                                const imageId = workbook.addImage({ base64, extension: 'png' });
+                                
+                                worksheet.addImage(imageId, {
+                                    tl: { col: (t / teamMembers.length) + 0.02, row: row.number - 0.95 },
+                                    ext: { width: 90, height: 90 }
+                                });
+                            } catch (error) {
+                                console.error(`QR embedding failed for ${tm.name}:`, error);
+                            }
+                        }
+                    }
+
+                    // Process individuals
+                    for (const m of individuals) {
                         const rowData: any = {
                             sno: snoCounter++,
                             name: m.name,
@@ -326,37 +413,71 @@ const AdminDashboard = () => {
                             phone: m.phone,
                             email: m.email
                         };
-
                         if (includeAttendance) {
-                            rowData.attendance = attendanceInfo?.attended ? `Present (${new Date(attendanceInfo.timestamp).toLocaleTimeString()})` : "Absent";
+                            const info = m.attendance?.[eventName];
+                            rowData.attendance = info?.attended ? `Present (${new Date(info.timestamp).toLocaleTimeString()})` : "Absent";
                         }
-
                         const row = worksheet.addRow(rowData);
-
                         row.height = 80;
                         row.alignment = { vertical: 'middle' };
-
                         try {
+                            const originalIndex = reg.members ? reg.members.findIndex(member => member.name === m.name) : 0;
                             const qrData = JSON.stringify({ id: reg.id, index: originalIndex, name: m.name, events: m.events });
                             const dataUrl = await QRCode.toDataURL(qrData, { width: 150, margin: 0 });
                             const base64 = dataUrl.split(',')[1];
-
-                            const imageId = workbook.addImage({
-                                base64: base64,
-                                extension: 'png',
-                            });
-
+                            const imageId = workbook.addImage({ base64, extension: 'png' });
                             worksheet.addImage(imageId, {
                                 tl: { col: 0.1, row: row.number - 0.95 },
-                                ext: { width: 100, height: 100 }
+                                ext: { width: 90, height: 90 }
                             });
                         } catch (error) {
-                            console.error(`QR embedding failed for ${m.name}:`, error);
                             row.getCell('qr').value = 'QR Failed';
+                        }
+                    }
+                } else {
+                    // Original logic for non-grouped events
+                    const participating = members.filter((m: any) => (Array.isArray(m.events) ? m.events : [m.events]).includes(eventName));
+                    if (participating.length > 0) {
+                        for (const m of participating) {
+                            const originalIndex = reg.members ? reg.members.findIndex(member => member.name === m.name) : 0;
+                            const attendanceInfo = m.attendance?.[eventName];
+                            const rowData: any = {
+                                sno: snoCounter++,
+                                name: m.name,
+                                department: m.department,
+                                college: m.college,
+                                phone: m.phone,
+                                email: m.email
+                            };
+
+                            if (includeAttendance) {
+                                rowData.attendance = attendanceInfo?.attended ? `Present (${new Date(attendanceInfo.timestamp).toLocaleTimeString()})` : "Absent";
+                            }
+
+                            const row = worksheet.addRow(rowData);
+                            row.height = 80;
+                            row.alignment = { vertical: 'middle' };
+
+                            try {
+                                const qrData = JSON.stringify({ id: reg.id, index: originalIndex, name: m.name, events: m.events });
+                                const dataUrl = await QRCode.toDataURL(qrData, { width: 150, margin: 0 });
+                                const base64 = dataUrl.split(',')[1];
+                                const imageId = workbook.addImage({ base64, extension: 'png' });
+                                worksheet.addImage(imageId, {
+                                    tl: { col: 0.1, row: row.number - 0.95 },
+                                    ext: { width: 90, height: 90 }
+                                });
+                            } catch (error) {
+                                row.getCell('qr').value = 'QR Failed';
+                            }
                         }
                     }
                 }
             }
+            
+            // Add some spacing after each event section
+            worksheet.addRow([]);
+            worksheet.addRow([]);
         }
 
         const buffer = await workbook.xlsx.writeBuffer();
