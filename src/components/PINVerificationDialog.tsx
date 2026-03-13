@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShieldCheck, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 
 interface PINVerificationDialogProps {
     isOpen: boolean;
