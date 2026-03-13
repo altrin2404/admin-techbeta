@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import QRCode from "qrcode";
 import { showToast } from "@/lib/showToast";
 import {
+    subscribeToRegistrations,
+    updateRegistrationStatus,
     deleteRegistration,
     type Registration,
     type TeamMember
