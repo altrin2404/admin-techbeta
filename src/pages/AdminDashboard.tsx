@@ -284,49 +284,41 @@ const AdminDashboard = () => {
             reg.members ? reg.members.flatMap(m => m.events) : reg.events
         ))).filter((e: string) => ALLOWED_EVENTS.includes(e)).sort();
 
-        showToast.info(`Generating ${includeAttendance ? 'Unified Attendance Sheet' : 'Unified Master Sheet'}...`);
-
-        const worksheet = workbook.addWorksheet(includeAttendance ? "Unified Attendance" : "Unified Master");
-        
-        // Define columns once
-        const columns = [
-            { header: "QR Code", key: "qr", width: 15 },
-            { header: "S.No", key: "sno", width: 10 },
-            { header: "Name", key: "name", width: 25 },
-            { header: "Dept", key: "department", width: 20 },
-            { header: "College", key: "college", width: 30 },
-            { header: "Phone", key: "phone", width: 20 },
-            { header: "Email", key: "email", width: 35 }
-        ];
-
-        if (includeAttendance) {
-            columns.push({ header: "Attendance", key: "attendance", width: 25 });
-        }
-
-        worksheet.columns = columns;
+        showToast.info(`Generating ${includeAttendance ? 'Attendance Sheets' : 'Master Sheets'}...`);
 
         for (const eventName of allEvents) {
-            // Add a large header for the event
-            const headerRow = worksheet.addRow(["", "", eventName.toUpperCase(), "", "", "", ""]);
-            worksheet.mergeCells(headerRow.number, 3, headerRow.number, 5);
-            headerRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
-            headerRow.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FF1E40AF' } // Deep blue background
-            };
-            headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
-            headerRow.height = 30;
+            // Clean sheet name (max 31 chars, no special chars)
+            const sheetName = eventName.substring(0, 31).replace(/[\\/?*[\]]/g, "");
+            const worksheet = workbook.addWorksheet(sheetName);
 
-            // Re-add table headers for this section
-            const subHeaderRow = worksheet.addRow(columns.map(c => c.header));
-            subHeaderRow.font = { bold: true };
-            subHeaderRow.alignment = { horizontal: 'center', vertical: 'middle' };
-            subHeaderRow.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FFF1F5F9' } // Light slate background
-            };
+            const columns = [
+                { header: "QR Code", key: "qr", width: 15 },
+                { header: "S.No", key: "sno", width: 10 },
+                { header: "Name", key: "name", width: 25 },
+                { header: "Dept", key: "department", width: 20 },
+                { header: "College", key: "college", width: 30 },
+                { header: "Phone", key: "phone", width: 20 },
+                { header: "Email", key: "email", width: 35 }
+            ];
+
+            if (includeAttendance) {
+                columns.push({ header: "Attendance", key: "attendance", width: 25 });
+            }
+
+            worksheet.columns = columns;
+
+            // Style header row
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+            headerRow.height = 25;
+            headerRow.eachCell((cell) => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF1E40AF' }
+                };
+            });
 
             let snoCounter = 1;
 
@@ -346,7 +338,6 @@ const AdminDashboard = () => {
                 const isTeamGroupedEvent = ["FutureMinds", "Postercraft"].includes(eventName);
 
                 if (isTeamGroupedEvent) {
-                    // Group members by their team name for this specific event
                     const teamsMap = new Map<string, any[]>();
                     const individuals: any[] = [];
 
@@ -367,7 +358,6 @@ const AdminDashboard = () => {
                         }
                     }
 
-                    // Process grouped teams
                     for (const [tName, teamMembers] of teamsMap.entries()) {
                         const rowData: any = {
                             sno: snoCounter++,
@@ -411,16 +401,8 @@ const AdminDashboard = () => {
                         }
                     }
 
-                    // Process individuals
                     for (const m of individuals) {
-                        const rowData: any = {
-                            sno: snoCounter++,
-                            name: m.name,
-                            department: m.department,
-                            college: m.college,
-                            phone: m.phone,
-                            email: m.email
-                        };
+                        const rowData: any = { sno: snoCounter++, name: m.name, department: m.department, college: m.college, phone: m.phone, email: m.email };
                         if (includeAttendance) {
                             const info = m.attendance?.[eventName];
                             rowData.attendance = info?.attended ? `Present (${new Date(info.timestamp).toLocaleTimeString()})` : "Absent";
@@ -443,29 +425,18 @@ const AdminDashboard = () => {
                         }
                     }
                 } else {
-                    // Original logic for non-grouped events
                     const participating = members.filter((m: any) => (Array.isArray(m.events) ? m.events : [m.events]).includes(eventName));
                     if (participating.length > 0) {
                         for (const m of participating) {
                             const originalIndex = reg.members ? reg.members.findIndex(member => member.name === m.name) : 0;
                             const attendanceInfo = m.attendance?.[eventName];
-                            const rowData: any = {
-                                sno: snoCounter++,
-                                name: m.name,
-                                department: m.department,
-                                college: m.college,
-                                phone: m.phone,
-                                email: m.email
-                            };
-
+                            const rowData: any = { sno: snoCounter++, name: m.name, department: m.department, college: m.college, phone: m.phone, email: m.email };
                             if (includeAttendance) {
                                 rowData.attendance = attendanceInfo?.attended ? `Present (${new Date(attendanceInfo.timestamp).toLocaleTimeString()})` : "Absent";
                             }
-
                             const row = worksheet.addRow(rowData);
                             row.height = 80;
                             row.alignment = { vertical: 'middle' };
-
                             try {
                                 const qrData = JSON.stringify({ id: reg.id, index: originalIndex, name: m.name, events: m.events });
                                 const dataUrl = await QRCode.toDataURL(qrData, { width: 150, margin: 0 });
@@ -482,10 +453,6 @@ const AdminDashboard = () => {
                     }
                 }
             }
-            
-            // Add some spacing after each event section
-            worksheet.addRow([]);
-            worksheet.addRow([]);
         }
 
         const buffer = await workbook.xlsx.writeBuffer();
