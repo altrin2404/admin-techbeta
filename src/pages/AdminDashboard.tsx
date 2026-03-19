@@ -723,8 +723,8 @@ const AdminDashboard = () => {
                 // 2. Search Query (matches against everything)
                 if (!query) return true;
 
-                const eventList = Array.isArray(m.events) ? m.events : [m.events];
-                const matchesEvent = eventList.some(e => e.toLowerCase().includes(query));
+                const eventList = Array.isArray(m.events) ? m.events : (m.events ? [m.events] : []);
+                const matchesEvent = eventList.some(e => e?.toLowerCase().includes(query));
                 
                 const matchesName = m.name?.toLowerCase().includes(query);
                 const matchesCollege = m.college?.toLowerCase().includes(query);
@@ -734,11 +734,11 @@ const AdminDashboard = () => {
                 const matchesTxId = reg.transactionId?.toLowerCase().includes(query);
                 const matchesUpi = reg.upiName?.toLowerCase().includes(query);
                 const matchesRegDate = reg.registrationDate && (
-                    reg.registrationDate.toLowerCase().includes(query) ||
+                    reg.registrationDate?.toLowerCase().includes(query) ||
                     new Date(reg.registrationDate).toLocaleDateString().toLowerCase().includes(query)
                 );
 
-                return matchesName || matchesCollege || matchesDept || matchesPhone || matchesEmail || matchesEvent || matchesTxId || matchesUpi || !!matchesRegDate;
+                return !!(matchesName || matchesCollege || matchesDept || matchesPhone || matchesEmail || matchesEvent || matchesTxId || matchesUpi || matchesRegDate);
             });
 
             if (filteredMembers.length > 0) {

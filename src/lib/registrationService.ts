@@ -36,7 +36,7 @@ export interface Registration {
     events: string[];
     transactionId: string;
     upiName?: string;
-    status: 'Pending Verification' | 'Verified' | 'Rejected';
+    status: 'Payment Initiated' | 'Pending Verification' | 'Verified' | 'Rejected';
     registrationDate: string; // ISO String
     timestamp: any; // Firestore server timestamp
 }
@@ -98,7 +98,7 @@ export const addRegistration = async (data: Omit<Registration, "id" | "status" |
 };
 
 export const subscribeToRegistrations = (callback: (data: Registration[]) => void) => {
-    const q = query(collection(db, COLLECTION_NAME), orderBy("timestamp", "asc"));
+    const q = query(collection(db, COLLECTION_NAME), orderBy("timestamp", "desc"));
     return onSnapshot(q, (snapshot) => {
         const registrations = snapshot.docs.map(doc => ({
             id: doc.id,
