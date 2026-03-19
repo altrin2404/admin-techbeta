@@ -354,7 +354,7 @@ const AdminDashboard = () => {
 
             let snoCounter = 1;
 
-            for (const reg of displayableRegistrations) {
+            for (const reg of registrations) {
                 const members = reg.members || [{
                     name: reg.name, 
                     email: reg.email, 
@@ -415,7 +415,7 @@ const AdminDashboard = () => {
 
                         for (let t = 0; t < teamMembers.length; t++) {
                             const tm = teamMembers[t];
-                            const originalIndex = reg.members ? reg.members.findIndex((member: any) => member.name === tm.name) : t;
+                            const originalIndex = reg.members ? reg.members.findIndex(member => member.name === tm.name) : t;
                             
                             try {
                                 const qrData = JSON.stringify({ id: reg.id, index: originalIndex, name: tm.name, events: tm.events });
@@ -443,7 +443,7 @@ const AdminDashboard = () => {
                         row.height = 80;
                         row.alignment = { vertical: 'middle' };
                         try {
-                            const originalIndex = reg.members ? reg.members.findIndex((member: any) => member.name === m.name) : 0;
+                            const originalIndex = reg.members ? reg.members.findIndex(member => member.name === m.name) : 0;
                             const qrData = JSON.stringify({ id: reg.id, index: originalIndex, name: m.name, events: m.events });
                             const dataUrl = await QRCode.toDataURL(qrData, { width: 150, margin: 0 });
                             const base64 = dataUrl.split(',')[1];
@@ -460,7 +460,7 @@ const AdminDashboard = () => {
                     const participating = members.filter((m: any) => (Array.isArray(m.events) ? m.events : [m.events]).includes(eventName));
                     if (participating.length > 0) {
                         for (const m of participating) {
-                            const originalIndex = reg.members ? reg.members.findIndex((member: any) => member.name === m.name) : 0;
+                            const originalIndex = reg.members ? reg.members.findIndex(member => member.name === m.name) : 0;
                             const attendanceInfo = m.attendance?.[eventName];
                             const rowData: any = { sno: snoCounter++, name: m.name, department: m.department, college: m.college, phone: m.phone, email: m.email };
                             if (includeAttendance) {
@@ -531,7 +531,7 @@ const AdminDashboard = () => {
         showToast.info("Generating General Attendance report...");
 
         let snoCounter = 1;
-        for (const reg of displayableRegistrations) {
+        for (const reg of registrations) {
             const members = reg.members || [{
                 name: reg.name, department: reg.department, college: reg.college, phone: reg.phone, email: reg.email, events: reg.events, attendance: (reg as any).attendance
             }];
@@ -695,19 +695,16 @@ const AdminDashboard = () => {
 
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-    // Filter out "Payment Initiated" records from all UI displays and exports
-    // They are kept in Firebase for internal auditing but not shown to admin
-    const displayableRegistrations = useMemo(() => {
-        return registrations.filter(reg => reg.status !== 'Payment Initiated');
-    }, [registrations]);
-
     const filteredRegistrations = useMemo(() => {
         const query = (debouncedSearchQuery || "").toLowerCase().trim();
         
-        // Return filtered list if no search filters active
-        if (!query && searchFilter === "all") return displayableRegistrations;
+        // Filter out drafts ('Payment Initiated') from the base list immediately
+        const baseRegistrations = registrations.filter(r => r.status !== 'Payment Initiated');
+        
+        // Return everything if no filters active
+        if (!query && searchFilter === "all") return baseRegistrations;
 
-        return displayableRegistrations.reduce((acc: Registration[], reg) => {
+        return baseRegistrations.reduce((acc: Registration[], reg) => {
             const members: TeamMember[] = reg.members || [{
                 name: reg.name, 
                 department: reg.department, 
@@ -787,7 +784,7 @@ const AdminDashboard = () => {
                         <AdminAttendanceMode
                             activeEvent={activeEvent}
                             setActiveEvent={setActiveEvent}
-                            registrations={displayableRegistrations}
+                            registrations={registrations}
                             setIsScannerOpen={setIsScannerOpen}
                             exportMasterExcel={() => exportMasterExcel(true)}
                             recentScans={recentScans}
@@ -801,7 +798,7 @@ const AdminDashboard = () => {
                         />
                     ) : adminMode === 'attendance' ? (
                         <AdminGeneralAttendance
-                            registrations={displayableRegistrations}
+                            registrations={registrations}
                             setIsScannerOpen={setIsScannerOpen}
                             scannedParticipant={scannedParticipant}
                             setScannedParticipant={setScannedParticipant}
@@ -813,7 +810,7 @@ const AdminDashboard = () => {
                         />
                     ) : (
                         <AdminMainDashboard
-                            registrations={displayableRegistrations}
+                            registrations={registrations}
                             filteredRegistrations={filteredRegistrations}
                             searchQuery={searchQuery}
                             setSearchQuery={setSearchQuery}
