@@ -29,7 +29,7 @@ import AdminGeneralAttendance from "@/components/admin/AdminGeneralAttendance";
 
 const ADMIN_EMAIL_DOMAIN = "techbeta2k26.firebaseapp.com";
 
-const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft", "LogoHub"];
+const ALLOWED_EVENTS = ["FutureMinds", "Webfusion", "PromptStorm", "Postercraft", "LogoHub", "VIBE CODING"];
 
 const AdminDashboard = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
