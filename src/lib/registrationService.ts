@@ -39,6 +39,8 @@ export interface Registration {
     status: 'Payment Initiated' | 'Pending Verification' | 'Verified' | 'Rejected';
     registrationDate: string; // ISO String
     timestamp: any; // Firestore server timestamp
+    totalAmount?: number;
+    initiatedDocId?: string;
 }
 
 const COLLECTION_NAME = "registrations";
