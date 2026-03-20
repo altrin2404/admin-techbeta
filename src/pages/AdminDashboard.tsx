@@ -698,11 +698,14 @@ const AdminDashboard = () => {
     const filteredRegistrations = useMemo(() => {
         const query = (debouncedSearchQuery || "").toLowerCase().trim();
         
-        // Filter out drafts ('Payment Initiated') from the base list immediately
-        const baseRegistrations = registrations.filter(r => r.status !== 'Payment Initiated');
+        // Filter logic
+        const baseRegistrations = registrations.filter(r => {
+            if (searchFilter === 'initiated') return r.status === 'Payment Initiated';
+            return r.status !== 'Payment Initiated';
+        });
         
-        // Return everything if no filters active
-        if (!query && searchFilter === "all") return baseRegistrations;
+        // Return everything if no query exists
+        if (!query && (searchFilter === "all" || searchFilter === "initiated")) return baseRegistrations;
 
         return baseRegistrations.reduce((acc: Registration[], reg) => {
             const members: TeamMember[] = reg.members || [{

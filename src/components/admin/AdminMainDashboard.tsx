@@ -177,7 +177,7 @@ const AdminMainDashboard = ({
         let pendingCount = 0;
 
         registrations.forEach(reg => {
-            if (reg.status === "Rejected") return;
+            if (reg.status === "Rejected" || reg.status === "Payment Initiated") return;
 
             const members = reg.members || [{
                 name: reg.name,
@@ -418,9 +418,10 @@ const AdminMainDashboard = ({
                                 </div>
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                                <SelectItem value="all" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">All</SelectItem>
+                                <SelectItem value="all" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Confirmed</SelectItem>
                                 <SelectItem value="verified" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Verified</SelectItem>
                                 <SelectItem value="pending" className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-purple-100 data-[state=checked]:text-purple-800">Pending</SelectItem>
+                                <SelectItem value="initiated" className="focus:bg-blue-50 focus:text-blue-700 cursor-pointer rounded-lg font-medium text-slate-700 data-[state=checked]:bg-blue-100 data-[state=checked]:text-blue-800">Initiated (Drafts)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -496,15 +497,20 @@ const AdminMainDashboard = ({
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 hidden lg:table-cell">
-                                                        <div className="text-[10px] font-mono text-slate-500 font-bold bg-slate-50 px-2 py-1 rounded border border-slate-100 inline-block">{reg.transactionId || 'CASH/GUEST'}</div>
-                                                        {reg.upiName && <div className="text-[9px] text-primary font-black uppercase mt-1 tracking-tight">{reg.upiName}</div>}
+                                                        <div className="text-[10px] font-mono text-slate-500 font-bold bg-slate-50 px-2 py-1 rounded border border-slate-100 inline-block">
+                                                            {reg.transactionId === 'PAYMENT_INITIATED' ? 'INITIATED' : (reg.transactionId || 'CASH/GUEST')}
+                                                        </div>
+                                                        <div className="text-[9px] font-black text-slate-400 mt-1 uppercase">
+                                                            ₹ {reg.totalAmount ? reg.totalAmount / 100 : (m.events.length * 200)}
+                                                        </div>
+                                                        {reg.upiName && <div className="text-[9px] text-primary font-black uppercase mt-0.5 tracking-tight">{reg.upiName}</div>}
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border ${m.isVerified
-                                                            ? 'bg-green-50 text-green-700 border-green-100'
-                                                            : 'bg-orange-50 text-orange-700 border-orange-100'
+                                                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border ${reg.status === 'Payment Initiated'
+                                                            ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                                            : (m.isVerified ? 'bg-green-50 text-green-700 border-green-100' : 'bg-orange-50 text-orange-700 border-orange-100')
                                                             }`}>
-                                                            {m.isVerified ? 'VERIFIED' : 'PENDING'}
+                                                            {reg.status === 'Payment Initiated' ? 'INITIATED' : (m.isVerified ? 'VERIFIED' : 'PENDING')}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 text-right flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
