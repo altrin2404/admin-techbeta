@@ -1,4 +1,4 @@
-import { ScanLine, QrCode, Download, ArrowLeft, Users } from "lucide-react";
+import { ScanLine, QrCode, Download, ArrowLeft, Users, Mail, Phone, GraduationCap, Building2, Calendar, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Registration } from "@/lib/registrationService";
 import { useMemo } from "react";
@@ -39,7 +39,7 @@ const AdminGeneralAttendance = ({
         return registrations.flatMap(reg => {
             if (!reg.members) return [];
             return reg.members
-                .map((m, idx) => ({ ...m, regId: reg.id, memberIndex: idx }))
+                .map((m, idx) => ({ ...m, regId: reg.id, memberIndex: idx, college: reg.college }))
                 .filter(m => m.attendance?.[ATTENDANCE_KEY]?.attended);
         }).sort((a, b) => {
             const timeA = new Date(a.attendance?.[ATTENDANCE_KEY]?.timestamp || 0).getTime();
@@ -57,9 +57,14 @@ const AdminGeneralAttendance = ({
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {scannedParticipant && currentScannedMember && (
-                <div className="bg-blue-600 rounded-3xl p-8 text-white shadow-2xl shadow-blue-200 animate-in zoom-in-95 duration-300">
-                    <div className="flex flex-col items-center text-center">
-                        <div className="bg-white/20 p-4 rounded-full mb-4">
+                <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-3xl p-8 text-white shadow-2xl shadow-blue-200 animate-in zoom-in-95 duration-300 relative overflow-hidden">
+                    {/* Decorative background elements */}
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                    
+                    <div className="relative flex flex-col items-center text-center">
+                        {/* Header with icon */}
+                        <div className="bg-white/20 p-4 rounded-full mb-4 backdrop-blur-sm">
                             <Users className="h-10 w-10 text-white" />
                         </div>
                         <h2 className="text-3xl font-black mb-1">{currentScannedMember.name}</h2>
@@ -67,19 +72,85 @@ const AdminGeneralAttendance = ({
                             {scannedParticipant.college}
                         </p>
 
-                        <div className="w-full max-w-sm bg-white/10 rounded-2xl p-4 mb-6 border border-white/10">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-[10px] font-black uppercase text-blue-200">Mode</span>
-                                <span className="font-bold">General Attendance</span>
+                        {/* Ticket Details Grid */}
+                        <div className="w-full max-w-md bg-white/10 rounded-2xl p-5 mb-6 border border-white/10 backdrop-blur-sm space-y-3">
+                            {/* Department & Year */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex items-center gap-2">
+                                    <Building2 className="h-3.5 w-3.5 text-blue-200 flex-shrink-0" />
+                                    <div className="text-left">
+                                        <span className="text-[9px] font-black uppercase text-blue-300 block">Department</span>
+                                        <span className="text-sm font-bold">{currentScannedMember.department || 'N/A'}</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <GraduationCap className="h-3.5 w-3.5 text-blue-200 flex-shrink-0" />
+                                    <div className="text-left">
+                                        <span className="text-[9px] font-black uppercase text-blue-300 block">Year</span>
+                                        <span className="text-sm font-bold">{currentScannedMember.year || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="border-t border-white/10"></div>
+
+                            {/* Phone & Email */}
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <Phone className="h-3.5 w-3.5 text-blue-200 flex-shrink-0" />
+                                    <div className="text-left">
+                                        <span className="text-[9px] font-black uppercase text-blue-300 block">Phone</span>
+                                        <span className="text-sm font-bold">{currentScannedMember.phone || 'N/A'}</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Mail className="h-3.5 w-3.5 text-blue-200 flex-shrink-0" />
+                                    <div className="text-left">
+                                        <span className="text-[9px] font-black uppercase text-blue-300 block">Email</span>
+                                        <span className="text-xs font-bold break-all">{currentScannedMember.email || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="border-t border-white/10"></div>
+
+                            {/* Registered Events */}
+                            <div className="flex items-start gap-2">
+                                <Tag className="h-3.5 w-3.5 text-blue-200 flex-shrink-0 mt-0.5" />
+                                <div className="text-left">
+                                    <span className="text-[9px] font-black uppercase text-blue-300 block mb-1">Registered Events</span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {(Array.isArray(currentScannedMember.events) ? currentScannedMember.events : [currentScannedMember.events]).map((event, idx) => (
+                                            <span key={idx} className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/15 text-white border border-white/20">
+                                                {event}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="border-t border-white/10"></div>
+
+                            {/* Mode & Status */}
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="h-3.5 w-3.5 text-blue-200 flex-shrink-0" />
+                                    <span className="text-[9px] font-black uppercase text-blue-300">Mode</span>
+                                </div>
+                                <span className="font-bold text-sm">General Attendance</span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-black uppercase text-blue-200">Status</span>
+                                <span className="text-[9px] font-black uppercase text-blue-300 ml-5">Status</span>
                                 <span className={`text-xs font-black px-2 py-0.5 rounded-full ${isAlreadyMarked ? 'bg-green-400 text-green-900' : 'bg-orange-400 text-orange-900'}`}>
                                     {isAlreadyMarked ? 'ALREADY PRESENT' : 'READY TO MARK'}
                                 </span>
                             </div>
                         </div>
 
+                        {/* Action Buttons */}
                         <div className="flex gap-4 w-full max-w-sm">
                             <Button
                                 onClick={() => onMarkAttendance(scannedParticipant.id, scannedMemberIndex, ATTENDANCE_KEY)}
@@ -148,15 +219,19 @@ const AdminGeneralAttendance = ({
                     ) : (
                         presentMembers.map((member, i) => (
                             <div key={i} className="flex items-center justify-between p-4 rounded-xl border bg-green-50 border-green-100 animate-in fade-in slide-in-from-right-4 duration-300">
-                                <div className="flex flex-col">
+                                <div className="flex flex-col gap-0.5">
                                     <span className="font-bold text-slate-800 text-sm">{member.name}</span>
-                                    <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-500">{member.college} · {member.department}</span>
+                                    <div className="flex items-center gap-2 mt-0.5">
                                         <span className="text-[10px] font-black uppercase text-green-600">
                                             Present
                                         </span>
                                         <span className="text-[10px] font-mono text-slate-400">
                                             {new Date(member.attendance?.[ATTENDANCE_KEY]?.timestamp || 0).toLocaleTimeString()}
                                         </span>
+                                        {member.phone && (
+                                            <span className="text-[10px] text-slate-400">· {member.phone}</span>
+                                        )}
                                     </div>
                                 </div>
                                 <Button
