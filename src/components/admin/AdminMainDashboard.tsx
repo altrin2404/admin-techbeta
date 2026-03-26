@@ -488,11 +488,11 @@ const AdminMainDashboard = ({
                                                     </td>
                                                     <td className="px-6 py-4 hidden lg:table-cell">
                                                         <div className="flex flex-wrap gap-1">
-                                                            {(Array.isArray(m.events) ? m.events : [m.events]).filter((e: string) => ALLOWED_EVENTS.includes(e)).slice(0, 2).map((e: string, i: number) => (
+                                                            {(Array.isArray(m.events || []) ? (m.events || []) : (m.events ? [m.events] : [])).filter((e: string) => ALLOWED_EVENTS.includes(e)).slice(0, 2).map((e: string, i: number) => (
                                                                 <span key={i} className="text-[9px] font-black uppercase bg-slate-50 text-slate-500 px-2 py-0.5 rounded border border-slate-100 whitespace-nowrap">{e}</span>
                                                             ))}
-                                                            {(Array.isArray(m.events) ? m.events : [m.events]).filter((e: string) => ALLOWED_EVENTS.includes(e)).length > 2 && (
-                                                                <span className="text-[10px] text-slate-300 font-bold">+{(Array.isArray(m.events) ? m.events : [m.events]).filter((e: string) => ALLOWED_EVENTS.includes(e)).length - 2}</span>
+                                                            {(Array.isArray(m.events || []) ? (m.events || []) : (m.events ? [m.events] : [])).filter((e: string) => ALLOWED_EVENTS.includes(e)).length > 2 && (
+                                                                <span className="text-[10px] text-slate-300 font-bold">+{(Array.isArray(m.events || []) ? (m.events || []) : (m.events ? [m.events] : [])).filter((e: string) => ALLOWED_EVENTS.includes(e)).length - 2}</span>
                                                             )}
                                                         </div>
                                                     </td>
@@ -501,7 +501,7 @@ const AdminMainDashboard = ({
                                                             {reg.transactionId === 'PAYMENT_INITIATED' ? 'INITIATED' : (reg.transactionId || 'CASH/GUEST')}
                                                         </div>
                                                         <div className="text-[9px] font-black text-slate-400 mt-1 uppercase">
-                                                            ₹ {reg.totalAmount ? reg.totalAmount / 100 : (m.events.length * 200)}
+                                                            ₹ {reg.totalAmount ? reg.totalAmount / 100 : ((m.events?.length || 0) * 200)}
                                                         </div>
                                                         {reg.upiName && <div className="text-[9px] text-primary font-black uppercase mt-0.5 tracking-tight">{reg.upiName}</div>}
                                                     </td>
