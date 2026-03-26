@@ -313,7 +313,7 @@ const AdminDashboard = () => {
         const ExcelJS = (await import("exceljs")).default;
         const workbook = new ExcelJS.Workbook();
         const allEvents = Array.from(new Set(registrations.flatMap(reg =>
-            reg.members ? reg.members.flatMap(m => m.events) : reg.events
+            reg.members ? reg.members.flatMap(m => m.events || []) : (reg.events || [])
         ))).filter((e: string) => ALLOWED_EVENTS.includes(e)).sort();
 
         showToast.info(`Generating ${includeAttendance ? 'Attendance Sheets' : 'Master Sheets'}...`);
