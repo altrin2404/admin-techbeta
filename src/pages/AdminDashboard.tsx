@@ -112,6 +112,13 @@ const AdminDashboard = () => {
         setAdminMode('none');
     };
 
+    // registrations arrive from Firestore as desc (newest first);
+    // reversing gives oldest-first order for Excel serial numbers.
+    // Only include Verified and Pending Verification — exclude Payment Initiated (drafts).
+    const getChronologicalRegistrations = () => registrations
+        .filter(r => r.status !== "Payment Initiated")
+        .reverse();
+
     const updateStatus = async (id: string, newStatus: string) => {
         const result = await updateRegistrationStatus(id, newStatus);
         if (result.success) {
@@ -255,8 +262,11 @@ const AdminDashboard = () => {
 
         showToast.info("Generating All Participants report...");
 
+        // Firestore returns data desc (newest first); reversing gives oldest-first for S.No
+        const sortedRegistrations = getChronologicalRegistrations();
+
         let snoCounter = 1;
-        for (const reg of registrations) {
+        for (const reg of sortedRegistrations) {
             const members = reg.members || [{
                 name: reg.name, department: reg.department, year: (reg as any).year, college: reg.college, phone: reg.phone, email: reg.email, events: reg.events
             }];
@@ -354,7 +364,9 @@ const AdminDashboard = () => {
 
             let snoCounter = 1;
 
-            for (const reg of registrations) {
+            const sortedRegistrations = getChronologicalRegistrations();
+
+            for (const reg of sortedRegistrations) {
                 const members = reg.members || [{
                     name: reg.name, 
                     email: reg.email, 
@@ -530,8 +542,11 @@ const AdminDashboard = () => {
 
         showToast.info("Generating General Attendance report...");
 
+        // Firestore returns data desc (newest first); reversing gives oldest-first for S.No
+        const sortedRegistrations = getChronologicalRegistrations();
+
         let snoCounter = 1;
-        for (const reg of registrations) {
+        for (const reg of sortedRegistrations) {
             const members = reg.members || [{
                 name: reg.name, department: reg.department, college: reg.college, phone: reg.phone, email: reg.email, events: reg.events, attendance: (reg as any).attendance
             }];
