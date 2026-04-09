@@ -607,6 +607,209 @@ const AdminDashboard = () => {
         showToast.success("General attendance report exported!");
     };
 
+    const exportAllParticipantsDocx = async () => {
+        try {
+            const docx = await import("docx");
+            const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, PageOrientation, AlignmentType, TextRun } = docx;
+            
+            const fileSaver = await import("file-saver");
+            const saveAs = fileSaver.saveAs || (fileSaver as any).default?.saveAs || (fileSaver as any).default;
+
+            if (!saveAs) throw new Error("File-saver not found");
+
+            showToast.info("Generating All Participants report (DOCX)...");
+
+            const sortedRegistrations = getChronologicalFilteredRegistrations();
+            const rows = [
+                new TableRow({
+                    children: [
+                        "S.No", "Name", "Dept", "Year", "College", "Phone", "Email", "Events", "Status", "Signature"
+                    ].map(text => new TableCell({
+                        children: [new Paragraph({ children: [new TextRun({ text, bold: true })], alignment: AlignmentType.CENTER })],
+                        shading: { fill: "E0E0E0" }
+                    }))
+                })
+            ];
+
+            let snoCounter = 1;
+            for (const reg of sortedRegistrations) {
+                const members = reg.members || [{
+                    name: reg.name, department: reg.department, year: (reg as any).year, college: reg.college, phone: reg.phone, email: reg.email, events: reg.events
+                }];
+
+                for (const m of members) {
+                    rows.push(new TableRow({
+                        children: [
+                            String(snoCounter++),
+                            m.name,
+                            m.department,
+                            m.year || "N/A",
+                            m.college,
+                            m.phone,
+                            m.email,
+                            Array.isArray(m.events) ? m.events.filter((e: string) => ALLOWED_EVENTS.includes(e)).join("; ") : (ALLOWED_EVENTS.includes(m.events) ? m.events : ""),
+                            reg.status,
+                            "" // Signature column
+                        ].map(text => new TableCell({
+                            children: [new Paragraph({ text: String(text) })]
+                        }))
+                    }));
+                }
+            }
+
+            const doc = new Document({
+                sections: [{
+                    properties: {
+                        page: {
+                            size: {
+                                orientation: PageOrientation.LANDSCAPE,
+                            },
+                        },
+                    },
+                    children: [
+                        new Paragraph({
+                            children: [new TextRun({ text: "All Participants Report", bold: true, size: 32 })],
+                            alignment: AlignmentType.CENTER,
+                            spacing: { after: 200 }
+                        }),
+                        new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            rows: rows
+                        })
+                    ],
+                }],
+            });
+
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, `techbeta_all_participants.docx`);
+            showToast.success("All participants exported (DOCX)!");
+        } catch (error: any) {
+            console.error("DOCX Export Error:", error);
+            showToast.error("Export failed", error.message || "An unexpected error occurred");
+        }
+    };
+
+    const exportMasterDocx = async () => {
+        try {
+            const docx = await import("docx");
+            const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, PageOrientation, AlignmentType, TextRun } = docx;
+
+            const fileSaver = await import("file-saver");
+            const saveAs = fileSaver.saveAs || (fileSaver as any).default?.saveAs || (fileSaver as any).default;
+
+            if (!saveAs) throw new Error("File-saver not found");
+
+            const allEvents = Array.from(new Set(filteredRegistrations.flatMap(reg =>
+                reg.members ? reg.members.flatMap(m => m.events || []) : (reg.events || [])
+            ))).filter((e: string) => ALLOWED_EVENTS.includes(e)).sort();
+
+            showToast.info("Generating Master Sheets (DOCX)...");
+
+            const sections = [];
+
+            for (const eventName of allEvents) {
+                const rows = [
+                    new TableRow({
+                        children: [
+                            "S.No", "Name", "Dept", "College", "Phone", "Email", "Signature"
+                        ].map(text => new TableCell({
+                            children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF" })], alignment: AlignmentType.CENTER })],
+                            shading: { fill: "1E40AF" }
+                        }))
+                    })
+                ];
+
+                let snoCounter = 1;
+                const sortedRegistrations = getChronologicalFilteredRegistrations();
+
+                for (const reg of sortedRegistrations) {
+                    const members = reg.members || [{
+                        name: reg.name, email: reg.email, phone: reg.phone, college: reg.college, department: reg.department, events: reg.events, participationType: (reg as any).participationType, teamName: (reg as any).teamName
+                    }] as any[];
+
+                    const isTeamGroupedEvent = ["FutureMinds", "Postercraft"].includes(eventName);
+
+                    if (isTeamGroupedEvent) {
+                        const teamsMap = new Map<string, any[]>();
+                        const individuals: any[] = [];
+
+                        for (const m of members) {
+                            const participation = (Array.isArray(m.events) ? m.events : [m.events]).includes(eventName);
+                            if (!participation) continue;
+
+                            const type = m.participationType?.[eventName];
+                            const tName = m.teamName?.[eventName];
+
+                            if (type === "Team" && tName) {
+                                if (!teamsMap.has(tName)) teamsMap.set(tName, []);
+                                teamsMap.get(tName)!.push(m);
+                            } else {
+                                individuals.push(m);
+                            }
+                        }
+
+                        for (const [tName, teamMembers] of teamsMap.entries()) {
+                            rows.push(new TableRow({
+                                children: [
+                                    String(snoCounter++),
+                                    `${tName}: ${teamMembers.map(m => m.name).join(", ")}`,
+                                    Array.from(new Set(teamMembers.map(m => m.department))).join(", "),
+                                    teamMembers[0].college,
+                                    teamMembers.map(m => m.phone).join(", "),
+                                    teamMembers.map(m => m.email).join(", "),
+                                    "" // Signature column
+                                ].map(text => new TableCell({ children: [new Paragraph({ text: String(text) })] }))
+                            }));
+                        }
+
+                        for (const m of individuals) {
+                            rows.push(new TableRow({
+                                children: [String(snoCounter++), m.name, m.department, m.college, m.phone, m.email, ""]
+                                    .map(text => new TableCell({ children: [new Paragraph({ text: String(text) })] }))
+                            }));
+                        }
+                    } else {
+                        const participating = members.filter((m: any) => (Array.isArray(m.events) ? m.events : [m.events]).includes(eventName));
+                        for (const m of participating) {
+                            rows.push(new TableRow({
+                                children: [String(snoCounter++), m.name, m.department, m.college, m.phone, m.email, ""]
+                                    .map(text => new TableCell({ children: [new Paragraph({ text: String(text) })] }))
+                            }));
+                        }
+                    }
+                }
+
+                if (rows.length > 1) {
+                    sections.push({
+                        properties: {
+                            page: { size: { orientation: PageOrientation.LANDSCAPE } },
+                        },
+                        children: [
+                            new Paragraph({
+                                children: [new TextRun({ text: eventName, bold: true, size: 28 })],
+                                alignment: AlignmentType.CENTER,
+                                spacing: { before: 400, after: 200 }
+                            }),
+                            new Table({
+                                width: { size: 100, type: WidthType.PERCENTAGE },
+                                rows: rows
+                            })
+                        ]
+                    });
+                }
+            }
+
+            const doc = new Document({ sections });
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, `techbeta_master_sheets.docx`);
+            showToast.success("Master sheets exported (DOCX)!");
+        } catch (error: any) {
+            console.error("DOCX Export Error:", error);
+            showToast.error("Export failed", error.message || "An unexpected error occurred");
+        }
+    };
+
+
     const handleMarkAttendance = async (participantId: string, memberIndex: number, eventName: string) => {
         try {
             const participant = registrations.find(r => r.id === participantId);
@@ -853,6 +1056,8 @@ const AdminDashboard = () => {
                             setIsScannerOpen={setIsScannerOpen}
                             exportAllParticipantsExcel={exportAllParticipantsExcel}
                             exportMasterExcel={() => exportMasterExcel(false)}
+                            exportAllParticipantsDocx={exportAllParticipantsDocx}
+                            exportMasterDocx={exportMasterDocx}
                             handleScan={handleScan}
                             updateStatus={updateStatus}
                             verifyMember={verifyMember}

@@ -58,6 +58,8 @@ interface AdminMainDashboardProps {
     setIsScannerOpen: (isOpen: boolean) => void;
     exportAllParticipantsExcel: () => void;
     exportMasterExcel: () => void;
+    exportAllParticipantsDocx: () => void;
+    exportMasterDocx: () => void;
     handleScan: (decodedText: string) => Promise<void>;
     updateStatus: (id: string, newStatus: string) => Promise<void>;
     verifyMember: (id: string, memberIndex: number) => Promise<void>;
@@ -158,6 +160,8 @@ const AdminMainDashboard = ({
     setIsScannerOpen,
     exportAllParticipantsExcel,
     exportMasterExcel,
+    exportAllParticipantsDocx,
+    exportMasterDocx,
     handleScan: _handleScan,
     updateStatus,
     verifyMember,
@@ -251,14 +255,23 @@ const AdminMainDashboard = ({
                             <Download className="h-4 w-4" /> Export Data <ChevronDown className="h-4 w-4 opacity-50" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 bg-white border-slate-200">
-                        <DropdownMenuItem onClick={exportAllParticipantsExcel} className="cursor-pointer font-medium text-slate-700">
+                    <DropdownMenuContent align="end" className="w-64 bg-white border-slate-200 p-2">
+                        <DropdownMenuItem onClick={exportAllParticipantsExcel} className="cursor-pointer font-medium text-slate-700 rounded-lg">
                             <FileText className="mr-2 h-4 w-4 text-blue-500" />
                             All Participants (XLSX)
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={exportMasterExcel} className="cursor-pointer font-medium text-slate-700">
+                        <DropdownMenuItem onClick={exportAllParticipantsDocx} className="cursor-pointer font-medium text-slate-700 rounded-lg">
+                            <FileText className="mr-2 h-4 w-4 text-indigo-500" />
+                            All Participants (DOCX)
+                        </DropdownMenuItem>
+                        <div className="h-px bg-slate-100 my-1 mx-1" />
+                        <DropdownMenuItem onClick={exportMasterExcel} className="cursor-pointer font-medium text-slate-700 rounded-lg">
                             <Layers className="mr-2 h-4 w-4 text-green-500" />
                             Master Sheet (XLSX)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={exportMasterDocx} className="cursor-pointer font-medium text-slate-700 rounded-lg">
+                            <Layers className="mr-2 h-4 w-4 text-emerald-500" />
+                            Master Sheet (DOCX)
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
