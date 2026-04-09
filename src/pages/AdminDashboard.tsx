@@ -116,7 +116,10 @@ const AdminDashboard = () => {
     // reversing gives oldest-first order for Excel serial numbers.
     // Only include Verified and Pending Verification — exclude Payment Initiated (drafts).
     const getChronologicalRegistrations = () => registrations
-        .filter(r => r.status === "Verified" || r.status === "Pending Verification")
+        .filter(r => 
+            (r.status === "Verified" || r.status === "Pending Verification") && 
+            r.transactionId !== 'PAYMENT_INITIATED'
+        )
         .reverse();
 
     const updateStatus = async (id: string, newStatus: string) => {
@@ -715,8 +718,8 @@ const AdminDashboard = () => {
         
         // Filter logic
         const baseRegistrations = registrations.filter(r => {
-            if (searchFilter === 'initiated') return r.status === 'Payment Initiated';
-            return r.status === "Verified" || r.status === "Pending Verification";
+            if (searchFilter === 'initiated') return r.status === 'Payment Initiated' || r.transactionId === 'PAYMENT_INITIATED';
+            return (r.status === "Verified" || r.status === "Pending Verification") && r.transactionId !== 'PAYMENT_INITIATED';
         });
         
         // Return everything if no query exists

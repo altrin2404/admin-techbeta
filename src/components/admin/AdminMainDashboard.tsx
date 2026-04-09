@@ -177,7 +177,7 @@ const AdminMainDashboard = ({
         let pendingCount = 0;
 
         registrations.forEach(reg => {
-            if (reg.status === "Rejected" || reg.status === "Payment Initiated") return;
+            if (reg.status === "Rejected" || reg.status === "Payment Initiated" || reg.transactionId === 'PAYMENT_INITIATED') return;
 
             const members = reg.members || [{
                 name: reg.name,
