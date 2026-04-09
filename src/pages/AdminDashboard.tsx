@@ -114,12 +114,9 @@ const AdminDashboard = () => {
 
     // registrations arrive from Firestore as desc (newest first);
     // reversing gives oldest-first order for Excel serial numbers.
-    // Only include Verified and Pending Verification — exclude Payment Initiated (drafts).
-    const getChronologicalRegistrations = () => registrations
-        .filter(r => 
-            (r.status === "Verified" || r.status === "Pending Verification") && 
-            r.transactionId !== 'PAYMENT_INITIATED'
-        )
+    // By default, only include Verified and Pending Verification — exclude Payment Initiated (drafts).
+    const getChronologicalFilteredRegistrations = (list?: Registration[]) => (list || filteredRegistrations)
+        .slice() // create a copy before reverse
         .reverse();
 
     const updateStatus = async (id: string, newStatus: string) => {
@@ -265,8 +262,8 @@ const AdminDashboard = () => {
 
         showToast.info("Generating All Participants report...");
 
-        // Firestore returns data desc (newest first); reversing gives oldest-first for S.No
-        const sortedRegistrations = getChronologicalRegistrations();
+        // Use currently filtered registrations, reversed for oldest-first S.No
+        const sortedRegistrations = getChronologicalFilteredRegistrations();
 
         let snoCounter = 1;
         for (const reg of sortedRegistrations) {
@@ -325,7 +322,7 @@ const AdminDashboard = () => {
     const exportMasterExcel = async (includeAttendance: boolean = false) => {
         const ExcelJS = (await import("exceljs")).default;
         const workbook = new ExcelJS.Workbook();
-        const allEvents = Array.from(new Set(registrations.flatMap(reg =>
+        const allEvents = Array.from(new Set(filteredRegistrations.flatMap(reg =>
             reg.members ? reg.members.flatMap(m => m.events || []) : (reg.events || [])
         ))).filter((e: string) => ALLOWED_EVENTS.includes(e)).sort();
 
@@ -367,7 +364,7 @@ const AdminDashboard = () => {
 
             let snoCounter = 1;
 
-            const sortedRegistrations = getChronologicalRegistrations();
+            const sortedRegistrations = getChronologicalFilteredRegistrations();
 
             for (const reg of sortedRegistrations) {
                 const members = reg.members || [{
@@ -545,8 +542,8 @@ const AdminDashboard = () => {
 
         showToast.info("Generating General Attendance report...");
 
-        // Firestore returns data desc (newest first); reversing gives oldest-first for S.No
-        const sortedRegistrations = getChronologicalRegistrations();
+        // Use currently filtered registrations, reversed for oldest-first S.No
+        const sortedRegistrations = getChronologicalFilteredRegistrations();
 
         let snoCounter = 1;
         for (const reg of sortedRegistrations) {
@@ -718,8 +715,8 @@ const AdminDashboard = () => {
         
         // Filter logic
         const baseRegistrations = registrations.filter(r => {
-            if (searchFilter === 'initiated') return r.status === 'Payment Initiated' || r.transactionId === 'PAYMENT_INITIATED';
-            return (r.status === "Verified" || r.status === "Pending Verification") && r.transactionId !== 'PAYMENT_INITIATED';
+            if (searchFilter === 'initiated') return (r.status === 'Payment Initiated' || r.transactionId === 'PAYMENT_INITIATED') && r.status !== 'Verified';
+            return (r.status === "Verified") || ((r.status === "Pending Verification") && r.transactionId !== 'PAYMENT_INITIATED');
         });
         
         // Return everything if no query exists
