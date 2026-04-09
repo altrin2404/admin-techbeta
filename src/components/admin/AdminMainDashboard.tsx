@@ -177,7 +177,10 @@ const AdminMainDashboard = ({
         let pendingCount = 0;
 
         registrations.forEach(reg => {
-            if (reg.status === "Rejected" || reg.status === "Payment Initiated" || reg.transactionId === 'PAYMENT_INITIATED') return;
+            const hasVerifiedMember = (reg.members || []).some(m => m.isVerified);
+            const isManualVerification = reg.status === "Verified" || reg.status === "Pending Verification" || hasVerifiedMember;
+
+            if (reg.status === "Rejected" || (!isManualVerification && (reg.status === "Payment Initiated" || reg.transactionId === 'PAYMENT_INITIATED'))) return;
 
             const members = reg.members || [{
                 name: reg.name,
@@ -506,11 +509,11 @@ const AdminMainDashboard = ({
                                                         {reg.upiName && <div className="text-[9px] text-primary font-black uppercase mt-0.5 tracking-tight">{reg.upiName}</div>}
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border ${reg.status === 'Payment Initiated'
-                                                            ? 'bg-blue-50 text-blue-700 border-blue-100'
-                                                            : (m.isVerified ? 'bg-green-50 text-green-700 border-green-100' : 'bg-orange-50 text-orange-700 border-orange-100')
+                                                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border ${
+                                                            m.isVerified ? 'bg-green-50 text-green-700 border-green-100' : 
+                                                            (reg.status === 'Payment Initiated' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-orange-50 text-orange-700 border-orange-100')
                                                             }`}>
-                                                            {reg.status === 'Payment Initiated' ? 'INITIATED' : (m.isVerified ? 'VERIFIED' : 'PENDING')}
+                                                            {m.isVerified ? 'VERIFIED' : (reg.status === 'Payment Initiated' ? 'INITIATED' : 'PENDING')}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 text-right flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>

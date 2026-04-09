@@ -151,3 +151,18 @@ export const updateRegistrationMembers = async (registrationId: string, members:
         return { success: false, error };
     }
 };
+
+export const updateRegistrationAfterPayment = async (id: string, transactionId: string, upiName: string = 'Manual Verification') => {
+    try {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        await updateDoc(docRef, {
+            status: 'Verified',
+            transactionId,
+            upiName
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating registration after payment: ", error);
+        return { success: false, error };
+    }
+};

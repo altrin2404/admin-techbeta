@@ -10,6 +10,7 @@ import {
     subscribeToRegistrations,
     updateRegistrationStatus,
     deleteRegistration,
+    updateRegistrationAfterPayment,
     type Registration,
     type TeamMember
 } from "@/lib/registrationService";
@@ -185,7 +186,13 @@ const AdminDashboard = () => {
             showToast.success(`Verified ${member.name}`);
 
             if (participant.status !== "Verified") {
-                updateRegistrationStatus(id, "Verified");
+                // If the transaction ID was previously 'PAYMENT_INITIATED', update it to indicate manual verification.
+                // This ensures the record passes all standard 'is-not-draft' filters.
+                if (participant.transactionId === 'PAYMENT_INITIATED') {
+                    await updateRegistrationAfterPayment(id, 'MANUAL_VERIFIED', 'Manual Verification');
+                } else {
+                    await updateRegistrationStatus(id, "Verified");
+                }
             }
 
             const qrData = JSON.stringify({ id: participant.id, index: memberIndex, name: member.name, events: member.events });
@@ -713,10 +720,18 @@ const AdminDashboard = () => {
     const filteredRegistrations = useMemo(() => {
         const query = (debouncedSearchQuery || "").toLowerCase().trim();
         
-        // Filter logic
+        // Filter logic:
+        // 'Initiated' tab should only show actual drafts (Payment Initiated status).
+        // If status is 'Verified' or 'Pending Verification', or if any member is verified, 
+        // it belongs in the main list regardless of TxID.
         const baseRegistrations = registrations.filter(r => {
-            if (searchFilter === 'initiated') return (r.status === 'Payment Initiated' || r.transactionId === 'PAYMENT_INITIATED') && r.status !== 'Verified';
-            return (r.status === "Verified") || ((r.status === "Pending Verification") && r.transactionId !== 'PAYMENT_INITIATED');
+            const hasVerifiedMember = (r.members || []).some(m => m.isVerified);
+            if (searchFilter === 'initiated') {
+                return (r.status === 'Payment Initiated' || r.transactionId === 'PAYMENT_INITIATED') && 
+                       (r.status !== 'Verified' && r.status !== 'Pending Verification') &&
+                       !hasVerifiedMember;
+            }
+            return (r.status === "Verified") || (r.status === "Pending Verification") || hasVerifiedMember;
         });
         
         // Return everything if no query exists
