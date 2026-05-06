@@ -694,20 +694,14 @@ const AdminDashboard = () => {
         try {
             const docx = await import("docx");
             const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, PageOrientation, AlignmentType, TextRun } = docx;
-
             const fileSaver = await import("file-saver");
             const saveAs = fileSaver.saveAs || (fileSaver as any).default?.saveAs || (fileSaver as any).default;
-
             if (!saveAs) throw new Error("File-saver not found");
-
             const allEvents = Array.from(new Set(filteredRegistrations.flatMap(reg =>
                 reg.members ? reg.members.flatMap(m => m.events || []) : (reg.events || [])
             ))).filter((e: string) => ALLOWED_EVENTS.includes(e)).sort();
-
             showToast.info("Generating Master Sheets (DOCX)...");
-
             const sections = [];
-
             for (const eventName of allEvents) {
                 const rows = [
                     new TableRow({
@@ -719,28 +713,21 @@ const AdminDashboard = () => {
                         }))
                     })
                 ];
-
                 let snoCounter = 1;
                 const sortedRegistrations = getChronologicalFilteredRegistrations();
-
                 for (const reg of sortedRegistrations) {
                     const members = reg.members || [{
                         name: reg.name, email: reg.email, phone: reg.phone, college: reg.college, department: reg.department, events: reg.events, participationType: (reg as any).participationType, teamName: (reg as any).teamName
                     }] as any[];
-
                     const isTeamGroupedEvent = ["FutureMinds", "Postercraft"].includes(eventName);
-
                     if (isTeamGroupedEvent) {
                         const teamsMap = new Map<string, any[]>();
                         const individuals: any[] = [];
-
                         for (const m of members) {
                             const participation = (Array.isArray(m.events) ? m.events : [m.events]).includes(eventName);
                             if (!participation) continue;
-
                             const type = m.participationType?.[eventName];
                             const tName = m.teamName?.[eventName];
-
                             if (type === "Team" && tName) {
                                 if (!teamsMap.has(tName)) teamsMap.set(tName, []);
                                 teamsMap.get(tName)!.push(m);
@@ -748,7 +735,6 @@ const AdminDashboard = () => {
                                 individuals.push(m);
                             }
                         }
-
                         for (const [tName, teamMembers] of teamsMap.entries()) {
                             rows.push(new TableRow({
                                 children: [
@@ -762,7 +748,6 @@ const AdminDashboard = () => {
                                 ].map(text => new TableCell({ children: [new Paragraph({ text: String(text) })] }))
                             }));
                         }
-
                         for (const m of individuals) {
                             rows.push(new TableRow({
                                 children: [String(snoCounter++), m.name, m.department, m.college, m.phone, m.email, reg.status === "Verified" ? "Razorpay" : "cash"]
@@ -779,27 +764,20 @@ const AdminDashboard = () => {
                         }
                     }
                 }
-
                 if (rows.length > 1) {
                     sections.push({
-                        properties: {
-                            page: { size: { orientation: PageOrientation.LANDSCAPE } },
-                        },
+                        properties: { page: { size: { orientation: PageOrientation.LANDSCAPE } } },
                         children: [
                             new Paragraph({
                                 children: [new TextRun({ text: eventName, bold: true, size: 28 })],
                                 alignment: AlignmentType.CENTER,
                                 spacing: { before: 400, after: 200 }
                             }),
-                            new Table({
-                                width: { size: 100, type: WidthType.PERCENTAGE },
-                                rows: rows
-                            })
+                            new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: rows })
                         ]
                     });
                 }
             }
-
             const doc = new Document({ sections });
             const blob = await Packer.toBlob(doc);
             saveAs(blob, `techbeta_master_sheets.docx`);
