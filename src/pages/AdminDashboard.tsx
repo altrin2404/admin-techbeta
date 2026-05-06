@@ -260,7 +260,7 @@ const AdminDashboard = () => {
             { header: "Phone", key: "phone", width: 15 },
             { header: "Email", key: "email", width: 30 },
             { header: "Events", key: "events", width: 40 },
-            { header: "Status", key: "status", width: 15 }
+            { header: "Payment_mode", key: "paymentMode", width: 15 }
         ];
 
         // Style header
@@ -289,7 +289,7 @@ const AdminDashboard = () => {
                     phone: m.phone,
                     email: m.email,
                     events: Array.isArray(m.events) ? m.events.filter((e: string) => ALLOWED_EVENTS.includes(e)).join("; ") : (ALLOWED_EVENTS.includes(m.events) ? m.events : ""),
-                    status: reg.status
+                    paymentMode: reg.status === "Verified" ? "Razorpay" : "cash"
                 });
 
                 row.height = 80;
@@ -347,7 +347,8 @@ const AdminDashboard = () => {
                 { header: "Dept", key: "department", width: 20 },
                 { header: "College", key: "college", width: 30 },
                 { header: "Phone", key: "phone", width: 20 },
-                { header: "Email", key: "email", width: 35 }
+                { header: "Email", key: "email", width: 35 },
+                { header: "Payment_mode", key: "paymentMode", width: 15 }
             ];
 
             if (includeAttendance) {
@@ -416,7 +417,8 @@ const AdminDashboard = () => {
                             department: Array.from(new Set(teamMembers.map(m => m.department))).join(", "),
                             college: teamMembers[0].college,
                             phone: teamMembers.map(m => m.phone).join(", "),
-                            email: teamMembers.map(m => m.email).join(", ")
+                            email: teamMembers.map(m => m.email).join(", "),
+                            paymentMode: reg.status === "Verified" ? "Razorpay" : "cash"
                         };
 
                         if (includeAttendance) {
@@ -453,7 +455,7 @@ const AdminDashboard = () => {
                     }
 
                     for (const m of individuals) {
-                        const rowData: any = { sno: snoCounter++, name: m.name, department: m.department, college: m.college, phone: m.phone, email: m.email };
+                        const rowData: any = { sno: snoCounter++, name: m.name, department: m.department, college: m.college, phone: m.phone, email: m.email, paymentMode: reg.status === "Verified" ? "Razorpay" : "cash" };
                         if (includeAttendance) {
                             const info = m.attendance?.[eventName];
                             rowData.attendance = info?.attended ? `Present (${new Date(info.timestamp).toLocaleTimeString()})` : "Absent";
@@ -481,7 +483,7 @@ const AdminDashboard = () => {
                         for (const m of participating) {
                             const originalIndex = reg.members ? reg.members.findIndex(member => member.name === m.name) : 0;
                             const attendanceInfo = m.attendance?.[eventName];
-                            const rowData: any = { sno: snoCounter++, name: m.name, department: m.department, college: m.college, phone: m.phone, email: m.email };
+                            const rowData: any = { sno: snoCounter++, name: m.name, department: m.department, college: m.college, phone: m.phone, email: m.email, paymentMode: reg.status === "Verified" ? "Razorpay" : "cash" };
                             if (includeAttendance) {
                                 rowData.attendance = attendanceInfo?.attended ? `Present (${new Date(attendanceInfo.timestamp).toLocaleTimeString()})` : "Absent";
                             }
@@ -623,7 +625,7 @@ const AdminDashboard = () => {
             const rows = [
                 new TableRow({
                     children: [
-                        "S.No", "Name", "Dept", "Year", "College", "Phone", "Email", "Events", "Status", "Signature"
+                        "S.No", "Name", "Dept", "Year", "College", "Phone", "Email", "Events", "Payment_mode"
                     ].map(text => new TableCell({
                         children: [new Paragraph({ children: [new TextRun({ text, bold: true })], alignment: AlignmentType.CENTER })],
                         shading: { fill: "E0E0E0" }
@@ -648,8 +650,7 @@ const AdminDashboard = () => {
                             m.phone,
                             m.email,
                             Array.isArray(m.events) ? m.events.filter((e: string) => ALLOWED_EVENTS.includes(e)).join("; ") : (ALLOWED_EVENTS.includes(m.events) ? m.events : ""),
-                            reg.status,
-                            "" // Signature column
+                            reg.status === "Verified" ? "Razorpay" : "cash"
                         ].map(text => new TableCell({
                             children: [new Paragraph({ text: String(text) })]
                         }))
@@ -711,7 +712,7 @@ const AdminDashboard = () => {
                 const rows = [
                     new TableRow({
                         children: [
-                            "S.No", "Name", "Dept", "College", "Phone", "Email", "Signature"
+                            "S.No", "Name", "Dept", "College", "Phone", "Email", "Payment_mode"
                         ].map(text => new TableCell({
                             children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF" })], alignment: AlignmentType.CENTER })],
                             shading: { fill: "1E40AF" }
@@ -757,14 +758,14 @@ const AdminDashboard = () => {
                                     teamMembers[0].college,
                                     teamMembers.map(m => m.phone).join(", "),
                                     teamMembers.map(m => m.email).join(", "),
-                                    "" // Signature column
+                                    reg.status === "Verified" ? "Razorpay" : "cash"
                                 ].map(text => new TableCell({ children: [new Paragraph({ text: String(text) })] }))
                             }));
                         }
 
                         for (const m of individuals) {
                             rows.push(new TableRow({
-                                children: [String(snoCounter++), m.name, m.department, m.college, m.phone, m.email, ""]
+                                children: [String(snoCounter++), m.name, m.department, m.college, m.phone, m.email, reg.status === "Verified" ? "Razorpay" : "cash"]
                                     .map(text => new TableCell({ children: [new Paragraph({ text: String(text) })] }))
                             }));
                         }
@@ -772,12 +773,11 @@ const AdminDashboard = () => {
                         const participating = members.filter((m: any) => (Array.isArray(m.events) ? m.events : [m.events]).includes(eventName));
                         for (const m of participating) {
                             rows.push(new TableRow({
-                                children: [String(snoCounter++), m.name, m.department, m.college, m.phone, m.email, ""]
+                                children: [String(snoCounter++), m.name, m.department, m.college, m.phone, m.email, reg.status === "Verified" ? "Razorpay" : "cash"]
                                     .map(text => new TableCell({ children: [new Paragraph({ text: String(text) })] }))
                             }));
                         }
                     }
-                }
 
                 if (rows.length > 1) {
                     sections.push({
