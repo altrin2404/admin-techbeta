@@ -669,7 +669,7 @@ const AdminDashboard = () => {
                     },
                     children: [
                         new Paragraph({
-                            children: [new TextRun({ text: "All Participants Report", bold: true, size: 32 })],
+                            children: [new TextRun({ text: "All Participants Report (Updated)", bold: true, size: 32 })],
                             alignment: AlignmentType.CENTER,
                             spacing: { after: 200 }
                         }),
@@ -682,7 +682,7 @@ const AdminDashboard = () => {
             });
 
             const blob = await Packer.toBlob(doc);
-            saveAs(blob, `techbeta_all_participants.docx`);
+            saveAs(blob, `techbeta_all_participants_updated.docx`);
             showToast.success("All participants exported (DOCX)!");
         } catch (error: any) {
             console.error("DOCX Export Error:", error);
