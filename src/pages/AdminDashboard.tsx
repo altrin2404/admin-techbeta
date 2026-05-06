@@ -778,6 +778,7 @@ const AdminDashboard = () => {
                             }));
                         }
                     }
+                }
 
                 if (rows.length > 1) {
                     sections.push({
